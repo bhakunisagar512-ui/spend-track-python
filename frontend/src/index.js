@@ -9,3 +9,11 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Service worker makes the app installable; skipped in dev so hot reload isn't served stale files
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${process.env.PUBLIC_URL}/service-worker.js`)
+      .catch(err => console.error('Service worker registration failed:', err));
+  });
+}

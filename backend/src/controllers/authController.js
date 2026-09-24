@@ -76,22 +76,45 @@ const login = async (req, res) => {
   }
 };
 
-const googleAuth = async (req, res) => {
-  console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);  // ADD THIS
-  console.log('credential received:', req.body.credential);
-  const { credential } = req.body;
-  if (!credential) {
-    return res.status(400).json({ error: 'Google credential required' });
-  }
-
-  try {
+// Resolves a verified Google profile from either an ID token (Google's rendered
+// button / One Tap) or an OAuth access token (custom button via the popup flow).
+const getGoogleProfile = async ({ credential, access_token }) => {
+  if (credential) {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
+    const { sub, email, email_verified, name, picture } = ticket.getPayload();
+    return { sub, email, emailVerified: email_verified === true, name, picture };
+  }
 
-    const payload = ticket.getPayload();
-    const { sub: googleId, email, name, picture } = payload;
+  // Access tokens aren't self-verifying: confirm it was issued to this app, or a
+  // token minted for some other site could be replayed here to log in as its user
+  const info = await googleClient.getTokenInfo(access_token);
+  if (info.aud !== process.env.GOOGLE_CLIENT_ID) {
+    throw new Error('Access token was issued for a different client');
+  }
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+  if (!r.ok) throw new Error(`Google userinfo failed with ${r.status}`);
+  const profile = await r.json();
+  if (profile.sub !== info.sub) throw new Error('Google token subject mismatch');
+  return { sub: profile.sub, email: profile.email, emailVerified: profile.email_verified === true, name: profile.name, picture: profile.picture };
+};
+
+const googleAuth = async (req, res) => {
+  const { credential, access_token } = req.body;
+  if (!credential && !access_token) {
+    return res.status(400).json({ error: 'Google credential required' });
+  }
+
+  try {
+    const { sub: googleId, email, emailVerified, name, picture } = await getGoogleProfile({ credential, access_token });
+    // Accounts are linked by email below, so only trust addresses Google has verified
+    if (!email || !emailVerified) {
+      return res.status(401).json({ error: 'Your Google email address is not verified' });
+    }
 
     let result = await pool.query('SELECT id, name, email, avatar_url, gemini_api_key FROM users WHERE google_id = $1', [googleId]);
 

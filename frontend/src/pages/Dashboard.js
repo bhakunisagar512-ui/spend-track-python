@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Doughnut, Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { useAuth } from '../context/AuthContext';
 import { expensesAPI, budgetsAPI } from '../api';
+import TrendChart from '../components/TrendChart';
 import { parseExpense, askGemini, CAT_COLORS, CAT_ICONS, fmt } from '../utils/gemini';
 import themeModule from '../tailwindTheme';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const { appTheme: T } = themeModule;
 
@@ -25,16 +26,18 @@ function StatCard({ label, value, sub, subColor }) {
   );
 }
 
+const currentMonthKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+
 export default function Dashboard() {
   const budgetCategories = ['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Recharge', 'Education', 'Grocerries', 'Other'];
-  const { user } = useAuth();
+  const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
   const [stats, setStats] = useState({ total: 0, count: 0, byCategory: [], daily: [] });
   const [budgets, setBudgets] = useState({});
   const [input, setInput] = useState('');
   const [parsing, setParsing] = useState(false);
-  const [monthFilter, setMonthFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState(currentMonthKey);
   const [askQ, setAskQ] = useState('');
   const [aiResp, setAiResp] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -43,8 +46,11 @@ export default function Dashboard() {
   const [newBudgetAmount, setNewBudgetAmount] = useState('');
   const [budgetSaving, setBudgetSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [dataVersion, setDataVersion] = useState(0);
 
-  const months = [...new Set(expenses.map(e => e.date?.slice(0, 7)))].filter(Boolean).sort().reverse();
+  // Month list comes from the server (unfiltered) so selecting a month doesn't hide the others
+  // The current month is always selectable (it's the default) even before anything is logged in it
+  const months = [...new Set([currentMonthKey(), ...(stats.months || expenses.map(e => e.date?.slice(0, 7)).filter(Boolean))])].sort().reverse();
 
   const fetchAll = useCallback(async () => {
     try {
@@ -58,6 +64,7 @@ export default function Dashboard() {
       const budMap = {};
       budRes.data.budgets.forEach(b => { budMap[b.category] = parseFloat(b.amount); });
       setBudgets(budMap);
+      setDataVersion(v => v + 1);
     } catch (err) {
       console.error('Fetch error:', err);
     } finally {
@@ -175,8 +182,9 @@ export default function Dashboard() {
   };
 
   const topCat = stats.byCategory?.[0];
-  const days = stats.daily?.length || 1;
+  const days = stats.activeDays ?? stats.daily?.length ?? 1;
   const avgPerDay = stats.total / Math.max(days, 1);
+  const thisMonthTotal = stats.thisMonth ?? expenses.filter(e => e.date?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, e) => s + parseFloat(e.amount), 0);
 
   const budgetAlerts = Object.entries(budgets).flatMap(([cat, bud]) => {
     const spent = stats.byCategory?.find(c => c.category === cat);
@@ -201,20 +209,7 @@ export default function Dashboard() {
     }],
   };
 
-  const last10 = (() => {
-    const days = [...Array(10)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 9 + i); return d.toISOString().slice(0, 10); });
-    return {
-      labels: days.map(d => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })),
-      datasets: [{
-        label: 'Spent', borderRadius: 6, borderWidth: 1.5,
-        data: days.map(day => { const found = stats.daily?.find(d => d.day === day); return found ? parseFloat(found.total) : 0; }),
-        backgroundColor: `${T.accent}55`, borderColor: T.accent,
-      }],
-    };
-  })();
-
   const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-  const barOpts = { ...chartOpts, scales: { x: { ticks: { color: T.text3, font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: T.text3, font: { size: 10 }, callback: v => fmt(v) }, grid: { color: `${T.border}44` } } } };
 
   const s = {
     wrap: { background: T.bg, minHeight: '100vh', fontFamily: T.fonts.display, color: T.text, paddingBottom: 40 },
@@ -241,7 +236,7 @@ export default function Dashboard() {
           <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
             style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '6px 10px', borderRadius: 8, fontFamily: T.fonts.display, fontSize: 12, cursor: 'pointer' }}>
             <option value="">All time</option>
-            {months.map(m => <option key={m} value={m}>{new Date(m + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}</option>)}
+            {months.map(m => <option key={m} value={m}>{new Date(m + '-01T00:00:00').toLocaleString('default', { month: 'long', year: 'numeric' })}</option>)}
           </select>
           {/* Settings button kept for other settings, not for Gemini key */}
           <button onClick={() => navigate('/settings')}
@@ -259,6 +254,16 @@ export default function Dashboard() {
       </div>
 
       <div style={s.body}>
+        {isGuest && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: `${T.accent}18`, border: `1px solid ${T.accent}44`, borderRadius: 10, padding: '10px 14px', marginTop: 14, fontSize: 13, color: T.accent2 }}>
+            <span>You're in guest mode with sample data. Changes last for this session only and are wiped when you sign out.</span>
+            <button onClick={() => { logout(); navigate('/login'); }}
+              style={{ background: T.accent, border: 'none', borderRadius: 8, color: '#fff', padding: '6px 12px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Sign up / Sign in
+            </button>
+          </div>
+        )}
+
         {budgetAlerts.length > 0 && (
           <div style={{ background: `${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}18`, border: `1px solid ${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}44`, borderRadius: 10, padding: '10px 14px', marginTop: 14, fontSize: 13, color: budgetAlerts[0].type === 'danger' ? T.danger : T.warn }}>
             {budgetAlerts.map(a => a.msg).join('  ·  ')}
@@ -289,7 +294,7 @@ export default function Dashboard() {
         {/* ── Stat Cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginTop: 16 }}>
           <StatCard label="Total Spent" value={fmt(stats.total)} sub={`${stats.count} expenses`} />
-          <StatCard label="This Month" value={fmt(expenses.filter(e => e.date?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, e) => s + parseFloat(e.amount), 0))} sub={new Date().toLocaleString('default', { month: 'long' })} />
+          <StatCard label="This Month" value={fmt(thisMonthTotal)} sub={new Date().toLocaleString('default', { month: 'long' })} />
           <StatCard label="Top Category" value={topCat?.category || '—'} sub={topCat ? fmt(parseFloat(topCat.total)) : '—'} subColor={topCat ? CAT_COLORS[topCat.category] : T.text2} />
           <StatCard label="Avg / Day" value={fmt(avgPerDay)} sub="daily average" />
         </div>
@@ -316,12 +321,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <div style={s.card}>
-              <div style={s.panelTitle}>10-Day Trend</div>
-              <div style={{ position: 'relative', height: 180 }}>
-                <Bar data={last10} options={barOpts} />
-              </div>
-            </div>
+            <TrendChart monthFilter={monthFilter} months={months} refreshKey={dataVersion} cardStyle={s.card} titleStyle={s.panelTitle} />
           </div>
 
           <div>

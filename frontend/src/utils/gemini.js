@@ -7,7 +7,7 @@ const CAT_KW = {
   Recharge: ['recharge','mobile','internet','wifi','broadband','electricity','bill','dth','jio','airtel','vi','bsnl','gas'],
 };
 
-const CAT_ICONS = { Food:'🍜', Transport:'🚗', Shopping:'🛍️', Health:'💊', Entertainment:'🎬', Recharge:'📱', Other:'📦' };
+const CAT_ICONS = { Food:'🍜', Transport:'🚗', Shopping:'🛍️', Health:'💊', Entertainment:'🎬', Recharge:'📱', Education:'📚', Grocerries:'🛒', Other:'📦' };
 
 function localCategorize(desc) {
   const d = desc.toLowerCase();
@@ -74,6 +74,8 @@ export const CAT_COLORS = {
   Health: '#c65b4b',
   Entertainment: '#b59a52',
   Recharge: '#5d8f87',
+  Education: '#7a6fa8',
+  Grocerries: '#6f9a4a',
   Other: '#8c9b93',
 };
 export { CAT_ICONS };

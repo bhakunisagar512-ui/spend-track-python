@@ -49,6 +49,10 @@
 #   backend_modules:
 #   frontend_modules:
 
+# Pin the project name so container/volume names (spendai-db-1, spendai_postgres_data)
+# don't depend on the checkout folder name; bin/*.sh scripts rely on them.
+name: spendai
+
 services:
   db:
     image: postgres:16-alpine
@@ -61,7 +65,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U username"]
+      test: ["CMD-SHELL", "pg_isready -U username -d spendai_db"]
       interval: 5s
       timeout: 5s
       retries: 5

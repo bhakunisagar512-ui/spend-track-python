@@ -95,10 +95,12 @@ const getStats = async (req, res) => {
       params.push(month);
     }
 
-    const [totals, byCategory, daily] = await Promise.all([
-      pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM expenses WHERE user_id = $1 ${dateFilter}`, params),
-      pool.query(`SELECT category, emoji, COALESCE(SUM(amount),0) as total, COUNT(*) as count FROM expenses WHERE user_id = $1 ${dateFilter} GROUP BY category, emoji ORDER BY total DESC`, params),
+    const [totals, byCategory, daily, overview, months] = await Promise.all([
+      pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total, COUNT(DISTINCT date::date) as active_days FROM expenses WHERE user_id = $1 ${dateFilter}`, params),
+      pool.query(`SELECT category, MIN(emoji) as emoji, COALESCE(SUM(amount),0) as total, COUNT(*) as count FROM expenses WHERE user_id = $1 ${dateFilter} GROUP BY category ORDER BY total DESC`, params),
       pool.query(`SELECT TO_CHAR(date,'YYYY-MM-DD') as day, SUM(amount) as total FROM expenses WHERE user_id = $1 AND date >= NOW() - INTERVAL '14 days' GROUP BY day ORDER BY day`, [req.user.id]),
+      pool.query(`SELECT COALESCE(SUM(amount),0) as this_month FROM expenses WHERE user_id = $1 AND TO_CHAR(date, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')`, [req.user.id]),
+      pool.query(`SELECT DISTINCT TO_CHAR(date, 'YYYY-MM') as month FROM expenses WHERE user_id = $1 ORDER BY month DESC`, [req.user.id]),
     ]);
 
     res.json({
@@ -106,6 +108,9 @@ const getStats = async (req, res) => {
       count: parseInt(totals.rows[0].count),
       byCategory: byCategory.rows,
       daily: daily.rows,
+      activeDays: parseInt(totals.rows[0].active_days),
+      thisMonth: parseFloat(overview.rows[0].this_month),
+      months: months.rows.map(r => r.month),
     });
   } catch (err) {
     console.error('Stats error:', err);
@@ -113,4 +118,25 @@ const getStats = async (req, res) => {
   }
 };
 
-module.exports = { getExpenses, createExpense, updateExpense, deleteExpense, getStats };
+// Daily totals for an inclusive date range (YYYY-MM-DD), used by the trend chart
+const getDaily = async (req, res) => {
+  const { from, to } = req.query;
+  const isDay = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '');
+  if (!isDay(from) || !isDay(to) || from > to) {
+    return res.status(400).json({ error: 'Valid from and to dates (YYYY-MM-DD) are required' });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT TO_CHAR(date,'YYYY-MM-DD') as day, SUM(amount) as total FROM expenses
+       WHERE user_id = $1 AND date >= $2::date AND date < $3::date + INTERVAL '1 day'
+       GROUP BY day ORDER BY day`,
+      [req.user.id, from, to]
+    );
+    res.json({ daily: result.rows });
+  } catch (err) {
+    console.error('Daily stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch daily totals' });
+  }
+};
+
+module.exports = { getExpenses, createExpense, updateExpense, deleteExpense, getStats, getDaily };

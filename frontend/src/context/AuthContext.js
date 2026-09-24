@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../api';
+import { GUEST_USER, isGuestSession, startGuestSession, clearGuestSession } from '../api/guestStore';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
+    if (isGuestSession()) return GUEST_USER;
     try { return JSON.parse(localStorage.getItem('spendai_user')); } catch { return null; }
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isGuestSession()) { setLoading(false); return; }
     const token = localStorage.getItem('spendai_token');
     if (!token) { setLoading(false); return; }
     authAPI.getMe()
@@ -19,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const saveAuth = useCallback((token, userData) => {
+    clearGuestSession();
     localStorage.setItem('spendai_token', token);
     localStorage.setItem('spendai_user', JSON.stringify(userData));
     setUser(userData);
@@ -42,13 +46,28 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   }, [saveAuth]);
 
+  const googleTokenLogin = useCallback(async (accessToken) => {
+    const res = await authAPI.googleAuthToken(accessToken);
+    saveAuth(res.data.token, res.data.user);
+    return res.data;
+  }, [saveAuth]);
+
+  const startGuest = useCallback(() => {
+    localStorage.removeItem('spendai_token');
+    localStorage.removeItem('spendai_user');
+    startGuestSession();
+    setUser(GUEST_USER);
+  }, []);
+
   const logout = useCallback(() => {
+    clearGuestSession();
     localStorage.removeItem('spendai_token');
     localStorage.removeItem('spendai_user');
     setUser(null);
   }, []);
 
   const updateApiKey = useCallback(async (key) => {
+    if (user?.is_guest) return;
     await authAPI.updateApiKey(key);
     const updated = { ...user, gemini_api_key: key };
     setUser(updated);
@@ -56,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, googleLogin, logout, updateApiKey }}>
+    <AuthContext.Provider value={{ user, loading, isGuest: !!user?.is_guest, register, login, googleLogin, googleTokenLogin, startGuest, logout, updateApiKey }}>
       {children}
     </AuthContext.Provider>
   );

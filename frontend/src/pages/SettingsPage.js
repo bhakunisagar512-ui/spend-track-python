@@ -6,7 +6,7 @@ import themeModule from '../tailwindTheme';
 const { appTheme: T } = themeModule;
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();   // updateApiKey no longer needed
+  const { user, isGuest, logout } = useAuth();   // updateApiKey no longer needed
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -47,10 +47,14 @@ export default function SettingsPage() {
         {/* ── Sign Out ── */}
         <div style={card}>
           <span style={label}>Session</span>
-          <p style={{ fontSize: 13, color: T.text2, marginBottom: 14 }}>Sign out of your account on this device.</p>
+          <p style={{ fontSize: 13, color: T.text2, marginBottom: 14 }}>
+            {isGuest
+              ? 'You are using a guest session. Signing out permanently wipes all guest transactions and budgets.'
+              : 'Sign out of your account on this device.'}
+          </p>
           <button onClick={handleLogout}
             style={{ background: T.danger + '18', border: `1px solid ${T.danger}44`, borderRadius: 10, padding: '10px 22px', color: T.danger, fontFamily: T.fonts.display, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            Sign Out
+            {isGuest ? 'Exit Guest Mode' : 'Sign Out'}
           </button>
         </div>
 

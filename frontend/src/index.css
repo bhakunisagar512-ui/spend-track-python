@@ -46,4 +46,15 @@
     background: theme('colors.app.border');
     border-radius: 4px;
   }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  /* iOS Safari zooms into any field under 16px on focus */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
 }

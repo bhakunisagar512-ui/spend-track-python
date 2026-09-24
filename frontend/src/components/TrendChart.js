@@ -4,6 +4,7 @@ import { Chart as ChartJS, Tooltip, CategoryScale, LinearScale, BarElement } fro
 import { expensesAPI } from '../api';
 import { fmt } from '../utils/gemini';
 import themeModule from '../tailwindTheme';
+import useIsMobile from '../hooks/useIsMobile';
 
 ChartJS.register(Tooltip, CategoryScale, LinearScale, BarElement);
 
@@ -39,6 +40,7 @@ const btn = (disabled) => ({
 });
 
 export default function TrendChart({ monthFilter, months, refreshKey, cardStyle, titleStyle }) {
+  const isMobile = useIsMobile();
   const bounds = useMemo(() => windowBounds(monthFilter, months), [monthFilter, months]);
   const defaultStart = useMemo(() => {
     const today = toKey(new Date());
@@ -95,7 +97,7 @@ export default function TrendChart({ monthFilter, months, refreshKey, cardStyle,
     responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => shortDate(days[items[0].dataIndex], true), label: ctx => fmt(ctx.raw) } } },
     scales: {
-      x: { ticks: { color: T.text3, font: { size: 10 }, maxRotation: 45 }, grid: { display: false } },
+      x: { ticks: { color: T.text3, font: { size: isMobile ? 9 : 10 }, maxRotation: 45 }, grid: { display: false } },
       y: { beginAtZero: true, ticks: { color: T.text3, font: { size: 10 }, callback: v => fmt(v) }, grid: { color: `${T.border}44` } },
     },
   };
@@ -125,7 +127,7 @@ export default function TrendChart({ monthFilter, months, refreshKey, cardStyle,
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.accent2} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
                 </svg>
-                {shortDate(from)} – {shortDate(to, true)}
+                {shortDate(from)} – {shortDate(to, !isMobile)}
               </button>
               {/* Native picker, visually hidden under the pill; opened via showPicker() */}
               <input ref={pickerRef} type="date" value={from} min={bounds.min} max={bounds.max} aria-label="Trend start date"

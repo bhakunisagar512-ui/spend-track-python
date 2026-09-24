@@ -5,6 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { useAuth } from '../context/AuthContext';
 import { expensesAPI, budgetsAPI } from '../api';
 import TrendChart from '../components/TrendChart';
+import useIsMobile from '../hooks/useIsMobile';
 import { parseExpense, askGemini, CAT_COLORS, CAT_ICONS, fmt } from '../utils/gemini';
 import themeModule from '../tailwindTheme';
 
@@ -16,11 +17,11 @@ const { appTheme: T } = themeModule;
 // In your .env file: REACT_APP_GEMINI_API_KEY=your_key_here
 const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
 
-function StatCard({ label, value, sub, subColor }) {
+function StatCard({ label, value, sub, subColor, compact }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '16px 18px' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', color: T.text3, textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: T.text }}>{value}</div>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: compact ? '12px 14px' : '16px 18px', minWidth: 0 }}>
+      <div style={{ fontSize: compact ? 10 : 11, fontWeight: 700, letterSpacing: '1.2px', color: T.text3, textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: compact ? 18 : 22, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
       {sub && <div style={{ fontSize: 12, color: subColor || T.text2, marginTop: 4 }}>{sub}</div>}
     </div>
   );
@@ -32,6 +33,8 @@ export default function Dashboard() {
   const budgetCategories = ['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Recharge', 'Education', 'Grocerries', 'Other'];
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const isTablet = useIsMobile(900);
   const [expenses, setExpenses] = useState([]);
   const [stats, setStats] = useState({ total: 0, count: 0, byCategory: [], daily: [] });
   const [budgets, setBudgets] = useState({});
@@ -213,9 +216,9 @@ export default function Dashboard() {
 
   const s = {
     wrap: { background: T.bg, minHeight: '100vh', fontFamily: T.fonts.display, color: T.text, paddingBottom: 40 },
-    topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: `1px solid ${T.border}` },
-    body: { padding: '0 20px', maxWidth: 1100, margin: '0 auto' },
-    card: { background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 20, marginBottom: 16 },
+    topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: isMobile ? '14px 12px 12px' : '18px 20px 14px', borderBottom: `1px solid ${T.border}` },
+    body: { padding: isMobile ? '0 12px' : '0 20px', maxWidth: 1100, margin: '0 auto' },
+    card: { background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 20, marginBottom: isMobile ? 12 : 16 },
     panelTitle: { fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', color: T.text3, textTransform: 'uppercase', marginBottom: 14 },
   };
 
@@ -229,26 +232,26 @@ export default function Dashboard() {
     <div style={s.wrap}>
       {/* ── Top bar: removed "Set Key" / AI On button ── */}
       <div style={s.topbar}>
-        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px' }}>
+        <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
           spend &<span style={{ color: T.accent }}>Track</span>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: isMobile ? 6 : 10, alignItems: 'center', minWidth: 0 }}>
           <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
-            style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '6px 10px', borderRadius: 8, fontFamily: T.fonts.display, fontSize: 12, cursor: 'pointer' }}>
+            style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '6px 10px', borderRadius: 8, fontFamily: T.fonts.display, fontSize: 12, cursor: 'pointer', minWidth: 0 }}>
             <option value="">All time</option>
-            {months.map(m => <option key={m} value={m}>{new Date(m + '-01T00:00:00').toLocaleString('default', { month: 'long', year: 'numeric' })}</option>)}
+            {months.map(m => <option key={m} value={m}>{new Date(m + '-01T00:00:00').toLocaleString('default', { month: isMobile ? 'short' : 'long', year: 'numeric' })}</option>)}
           </select>
           {/* Settings button kept for other settings, not for Gemini key */}
-          <button onClick={() => navigate('/settings')}
-            style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text2, padding: '6px 12px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 12 }}>
-            ⚙ Settings
+          <button onClick={() => navigate('/settings')} aria-label="Settings" title="Settings"
+            style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text2, padding: isMobile ? '6px 9px' : '6px 12px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {isMobile ? '⚙' : '⚙ Settings'}
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {user?.avatar_url
               ? <img src={user.avatar_url} alt="" style={{ width: 30, height: 30, borderRadius: '50%' }} />
               : <div style={{ width: 30, height: 30, borderRadius: '50%', background: T.accent + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: T.accent }}>{user?.name?.charAt(0)}</div>
             }
-            <span style={{ fontSize: 13, color: T.text2 }}>{user?.name}</span>
+            {!isMobile && <span style={{ fontSize: 13, color: T.text2 }}>{user?.name}</span>}
           </div>
         </div>
       </div>
@@ -271,14 +274,14 @@ export default function Dashboard() {
         )}
 
         {/* ── Log Expense ── */}
-        <div style={{ marginTop: 16, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
+        <div style={{ marginTop: 16, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 14 : 20 }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', color: T.text3, textTransform: 'uppercase', marginBottom: 10 }}>Log Expense</div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: isMobile ? 8 : 10 }}>
             <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addExpense()} disabled={parsing}
-              placeholder='e.g. "250 banana shake" or "500 uber"'
-              style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '13px 15px', color: T.text, fontFamily: T.fonts.mono, fontSize: 14, outline: 'none' }} />
+              placeholder={isMobile ? 'e.g. "250 uber"' : 'e.g. "250 banana shake" or "500 uber"'}
+              style={{ flex: 1, minWidth: 0, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '13px 15px', color: T.text, fontFamily: T.fonts.mono, fontSize: 14, outline: 'none' }} />
             <button onClick={addExpense} disabled={parsing}
-              style={{ background: T.accent, border: 'none', borderRadius: 10, padding: '0 22px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 14, cursor: parsing ? 'not-allowed' : 'pointer', opacity: parsing ? 0.5 : 1, height: 48, whiteSpace: 'nowrap' }}>
+              style={{ background: T.accent, border: 'none', borderRadius: 10, padding: isMobile ? '0 14px' : '0 22px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 14, cursor: parsing ? 'not-allowed' : 'pointer', opacity: parsing ? 0.5 : 1, height: 48, whiteSpace: 'nowrap' }}>
               {parsing ? 'Parsing...' : '+ Add'}
             </button>
           </div>
@@ -292,19 +295,19 @@ export default function Dashboard() {
         </div>
 
         {/* ── Stat Cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginTop: 16 }}>
-          <StatCard label="Total Spent" value={fmt(stats.total)} sub={`${stats.count} expenses`} />
-          <StatCard label="This Month" value={fmt(thisMonthTotal)} sub={new Date().toLocaleString('default', { month: 'long' })} />
-          <StatCard label="Top Category" value={topCat?.category || '—'} sub={topCat ? fmt(parseFloat(topCat.total)) : '—'} subColor={topCat ? CAT_COLORS[topCat.category] : T.text2} />
-          <StatCard label="Avg / Day" value={fmt(avgPerDay)} sub="daily average" />
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isTablet ? 2 : 4}, minmax(0,1fr))`, gap: 10, marginTop: 16 }}>
+          <StatCard compact={isMobile} label="Total Spent" value={fmt(stats.total)} sub={`${stats.count} expenses`} />
+          <StatCard compact={isMobile} label="This Month" value={fmt(thisMonthTotal)} sub={new Date().toLocaleString('default', { month: 'long' })} />
+          <StatCard compact={isMobile} label="Top Category" value={topCat?.category || '—'} sub={topCat ? fmt(parseFloat(topCat.total)) : '—'} subColor={topCat ? CAT_COLORS[topCat.category] : T.text2} />
+          <StatCard compact={isMobile} label="Avg / Day" value={fmt(avgPerDay)} sub="daily average" />
         </div>
 
         {/* ── Charts + Recent ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14, marginTop: 16 }}>
-          <div>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? 'minmax(0,1fr)' : 'minmax(0,1fr) 320px', gap: isMobile ? 0 : 14, marginTop: 16 }}>
+          <div style={{ minWidth: 0 }}>
             <div style={s.card}>
               <div style={s.panelTitle}>Category Breakdown</div>
-              <div style={{ position: 'relative', height: 210 }}>
+              <div style={{ position: 'relative', height: isMobile ? 180 : 210 }}>
                 {stats.byCategory?.length > 0
                   ? <Doughnut data={donutData} options={{ ...chartOpts, cutout: '70%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)}` } } } }} />
                   : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.text3, fontSize: 13 }}>No data yet</div>
@@ -325,7 +328,7 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <div style={{ ...s.card, maxHeight: 330, overflow: 'hidden' }}>
+            <div style={{ ...s.card, maxHeight: 330, overflow: 'hidden', minWidth: 0 }}>
               <div style={s.panelTitle}>Recent Expenses</div>
               <div style={{ overflowY: 'auto', maxHeight: 260 }}>
                 {expenses.length === 0
@@ -340,7 +343,7 @@ export default function Dashboard() {
                         <div style={{ fontSize: 11, color: T.text3 }}>{exp.category} · {new Date(exp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: T.fonts.mono, color: T.danger, flexShrink: 0 }}>-{fmt(parseFloat(exp.amount))}</div>
-                      <button onClick={() => deleteExpense(exp.id)} style={{ background: 'none', border: 'none', color: T.text3, cursor: 'pointer', fontSize: 12, padding: '0 2px', opacity: 0.6 }}>✕</button>
+                      <button onClick={() => deleteExpense(exp.id)} aria-label="Delete expense" style={{ background: 'none', border: 'none', color: T.text3, cursor: 'pointer', fontSize: 12, padding: isMobile ? '6px' : '0 2px', opacity: 0.6 }}>✕</button>
                     </div>
                   ))
                 }
@@ -375,7 +378,7 @@ export default function Dashboard() {
         {/* ── Budget Limits ── */}
         <div style={{ ...s.card, marginTop: 0 }}>
           <div style={s.panelTitle}>Budget Limits</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 10, marginBottom: 14 }}>
             <select
               value={newBudgetCategory}
               onChange={e => setNewBudgetCategory(e.target.value)}
@@ -396,7 +399,7 @@ export default function Dashboard() {
             <button
               onClick={addBudget}
               disabled={budgetSaving}
-              style={{ background: T.accent, border: 'none', borderRadius: 9, padding: '0 16px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 12, cursor: budgetSaving ? 'not-allowed' : 'pointer', opacity: budgetSaving ? 0.6 : 1, whiteSpace: 'nowrap' }}
+              style={{ background: T.accent, border: 'none', borderRadius: 9, padding: isMobile ? '11px 16px' : '0 16px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 12, cursor: budgetSaving ? 'not-allowed' : 'pointer', opacity: budgetSaving ? 0.6 : 1, whiteSpace: 'nowrap', gridColumn: isMobile ? '1 / -1' : 'auto' }}
             >
               {budgetSaving ? 'Adding...' : '+ Add Budget'}
             </button>
@@ -406,7 +409,7 @@ export default function Dashboard() {
               No budgets added yet. Create one above and it will appear here with its limit.
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isMobile ? 1 : isTablet ? 2 : 3}, minmax(0,1fr))`, gap: 10 }}>
             {budgetCards.map(cat => {
               const catStat = stats.byCategory?.find(c => c.category === cat);
               const spent = catStat ? parseFloat(catStat.total) : 0;
@@ -428,9 +431,9 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input type="number" placeholder="₹ limit" value={budgetEdit[cat] || ''}
                       onChange={e => setBudgetEdit(p => ({ ...p, [cat]: e.target.value }))}
-                      style={{ flex: 1, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 8px', color: T.text, fontFamily: T.fonts.mono, fontSize: 12, outline: 'none', minWidth: 0 }} />
+                      style={{ flex: 1, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: isMobile ? '8px 10px' : '5px 8px', color: T.text, fontFamily: T.fonts.mono, fontSize: 12, outline: 'none', minWidth: 0 }} />
                     <button onClick={() => saveBudget(cat)}
-                      style={{ background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 10px', color: T.text2, cursor: 'pointer', fontSize: 11, fontFamily: T.fonts.display }}>
+                      style={{ background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: isMobile ? '8px 14px' : '5px 10px', color: T.text2, cursor: 'pointer', fontSize: 11, fontFamily: T.fonts.display }}>
                       Set
                     </button>
                   </div>
@@ -448,10 +451,10 @@ export default function Dashboard() {
               Gemini API key not configured. Add <code>REACT_APP_GEMINI_API_KEY</code> to your <code>.env</code> file.
             </div>
           )}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, marginBottom: 12 }}>
             <input value={askQ} onChange={e => setAskQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAsk()} disabled={aiLoading}
-              placeholder="Ask: Where am I overspending? How can I save more?"
-              style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: T.fonts.display, fontSize: 13, outline: 'none' }} />
+              placeholder={isMobile ? 'Where am I overspending?' : 'Ask: Where am I overspending? How can I save more?'}
+              style={{ flex: 1, minWidth: 0, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: T.fonts.display, fontSize: 13, outline: 'none' }} />
             <button onClick={doAsk} disabled={aiLoading || !GEMINI_API_KEY}
               style={{ background: T.bg3, border: `1px solid ${T.accent}`, color: T.accent, borderRadius: 10, padding: '12px 18px', fontFamily: T.fonts.display, fontSize: 13, fontWeight: 700, cursor: (!GEMINI_API_KEY || aiLoading) ? 'not-allowed' : 'pointer', opacity: (!GEMINI_API_KEY || aiLoading) ? 0.4 : 1, whiteSpace: 'nowrap' }}>
               {aiLoading ? 'Thinking...' : 'Ask AI'}

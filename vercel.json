@@ -4,7 +4,7 @@
       "entrypoint": "frontend/"
     },
     "backend": {
-      "entrypoint": "backend/"
+      "entrypoint": "backend-fastapi/"
     }
   },
   "rewrites": [

@@ -73,19 +73,18 @@ services:
       - spendai_network
 
   backend:
-    image: node:20-alpine
-    working_dir: /app
+    build: ./backend-fastapi
     env_file:
-      - ./backend/.env
+      - ./backend-fastapi/.env
     volumes:
-      - ./backend:/app
-      - backend_modules:/app/node_modules
+      - ./backend-fastapi:/app
     ports:
       - "5000:5000"
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm install && chmod -R +x node_modules/.bin/ && npm run dev"
+    # Migrations are idempotent, so they run before every start
+    command: sh -c "python -m app.config.migrate && python -m app --reload"
     networks:
       - spendai_network
 
@@ -107,7 +106,6 @@ services:
 
 volumes:
   postgres_data:
-  backend_modules:
   frontend_modules:
 
 networks:

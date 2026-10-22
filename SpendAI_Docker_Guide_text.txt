@@ -1,0 +1,387 @@
+﻿Docker Setup Guide
+SpendAI Project  —  React + Node.js + PostgreSQL
+docker-compose · build-and-run.sh · start-dev.sh · stop-dev.sh · migrations
+1.  Why We Use Docker for SpendAI
+SpendAI has three separate services that must all run together:
+
+Service
+Technology
+Runs on port
+Database
+PostgreSQL 16
+5432
+Backend
+Node.js 20 + Express
+5000
+Frontend
+React (Create React App)
+3000
+
+Without Docker you would have to:
+    • Install PostgreSQL, Node.js, and npm on your machine at exactly the right versions.
+    • Start three separate terminal windows and run each service manually.
+    • Remember the exact start commands for every service.
+    • Hope that your machine version of Node matches your teammate's machine.
+    • Deal with 'it works on my machine' problems constantly.
+
+With Docker you get:
+
+Benefit
+What it means for you
+One command start
+docker-compose up starts all 3 services at once
+Locked versions
+Postgres 16-alpine, Node 20-alpine — same on every machine forever
+Isolated environment
+No conflicts with other projects on your system
+Easy teardown
+docker-compose down stops and cleans everything
+Portable
+Any developer clones the repo and runs one command — done
+Health checks
+Docker waits for Postgres to be ready before starting backend
+
+2.  docker-compose.yml — Line by Line
+This is the main configuration file that describes all three services and how they connect.
+
+services:
+
+  # ─── SERVICE 1: PostgreSQL Database ───────────────────
+  db:
+    image: postgres:16-alpine        # Official Postgres image, Alpine = small size
+    environment:
+      POSTGRES_USER: username        # DB login username
+      POSTGRES_PASSWORD: password    # DB login password
+      POSTGRES_DB: spendai_db        # Database name created automatically
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist data between restarts
+    ports:
+      - '5432:5432'                  # host_port:container_port
+    healthcheck:                     # Docker waits for Postgres to be READY
+      test: ['CMD-SHELL', 'pg_isready -U username']
+      interval: 5s                   # Check every 5 seconds
+      timeout: 5s                    # Give up after 5 seconds
+      retries: 5                     # Try 5 times before marking unhealthy
+
+  # ─── SERVICE 2: Node.js Backend ───────────────────────
+  backend:
+    image: node:20-alpine            # Official Node 20 image
+    working_dir: /app                # All commands run from /app inside container
+    env_file:
+      - ./backend/.env               # Load backend environment variables
+    volumes:
+      - ./backend:/app               # Mount local backend/ folder into container
+      - backend_modules:/app/node_modules  # Separate volume for node_modules
+    ports:
+      - '5000:5000'                  # Expose backend on localhost:5000
+    depends_on:
+      db:
+        condition: service_healthy   # Wait for DB healthcheck to pass first
+    command: sh -c 'npm install && chmod -R +x node_modules/.bin/ && npm run dev'
+
+  # ─── SERVICE 3: React Frontend ─────────────────────────
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    env_file:
+      - ./frontend/.env              # Load REACT_APP_ variables
+    volumes:
+      - ./frontend:/app
+      - frontend_modules:/app/node_modules
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend                      # Start after backend is up
+    command: sh -c 'npm install && chmod -R +x node_modules/.bin/ && npm start'
+
+# ─── Named Volumes ──────────────────────────────────────
+volumes:
+  postgres_data:       # Stores actual database rows — survives docker-compose down
+  backend_modules:     # node_modules for backend — avoids reinstalling every time
+  frontend_modules:    # node_modules for frontend
+
+KEY INSIGHT — volumes vs bind mounts:
+  ./backend:/app        is a bind mount  — changes on your disk appear instantly inside container
+  backend_modules:...   is a named volume — managed by Docker, NOT visible on your disk
+This is why hot-reload works: you edit a file, the container sees it immediately.
+
+2.1  The DATABASE_URL Must Use 'db', Not 'localhost'
+Inside Docker, each service runs in its own mini-computer (container). 'localhost' inside the backend container means the backend container itself — not the Postgres container.
+
+# backend/.env
+
+# WRONG — 'localhost' inside Docker means the backend container itself
+DATABASE_URL=postgresql://username:password@localhost:5432/spendai_db
+
+# CORRECT — use the service name 'db' from docker-compose.yml
+DATABASE_URL=postgresql://username:password@db:5432/spendai_db
+
+Docker automatically creates a DNS name for each service using the service name. So 'db' resolves to the Postgres container's IP address automatically.
+
+3.  The Three Shell Scripts
+These scripts are shortcuts so you don't have to remember Docker commands. They live in the project root.
+
+3.1  build-and-run.sh — First Time Setup
+Use this the very first time you set up the project, or when you want a completely clean rebuild.
+
+#!/bin/bash
+# build-and-run.sh
+
+echo '🐳 Stopping any existing containers...'
+docker-compose down
+
+echo '🔨 Building and starting all services...'
+docker-compose up --build --force-recreate
+
+# --build          : Rebuild images even if nothing changed
+# --force-recreate : Destroy and recreate containers fresh
+
+WHEN TO USE build-and-run.sh:
+  • First time cloning the project
+  • After changing docker-compose.yml
+  • After adding new packages to package.json
+  • When something is broken and you want a clean slate
+  • After changing .env files (forces Docker to re-read them)
+
+3.2  start-dev.sh — Daily Development
+Use this every day when you sit down to work. It starts everything without rebuilding.
+
+#!/bin/bash
+# start-dev.sh
+
+echo '🚀 Starting SpendAI development environment...'
+docker-compose up
+
+# Starts all 3 containers in order:
+#   1. db        (Postgres — starts first)
+#   2. backend   (waits for db healthcheck to pass)
+#   3. frontend  (starts after backend)
+
+# Logs from all 3 services appear in the same terminal
+# Press Ctrl+C to stop all services at once
+
+You can also run it detached (in background) by modifying to docker-compose up -d, then check logs with docker-compose logs -f.
+
+3.3  stop-dev.sh — Clean Shutdown
+Use this when you are done working for the day.
+
+#!/bin/bash
+# stop-dev.sh
+
+echo '🛑 Stopping SpendAI development environment...'
+docker-compose down
+
+# Stops and REMOVES containers (not volumes)
+# Your database data is safe — stored in postgres_data volume
+# node_modules are safe — stored in named volumes
+
+# To also delete ALL data including database:
+# docker-compose down -v    (the -v flag removes volumes too)
+
+IMPORTANT: docker-compose down does NOT delete your database data.
+Data lives in the postgres_data named volume and survives restarts.
+Only docker-compose down -v will wipe the database — use with caution!
+
+4.  How to Run the Scripts
+Make the scripts executable once (first time only):
+
+chmod +x build-and-run.sh start-dev.sh stop-dev.sh
+
+Then run them:
+
+# First time setup:
+./build-and-run.sh
+
+# Daily start:
+./start-dev.sh
+
+# Stop when done:
+./stop-dev.sh
+
+5.  Database Migrations
+Docker starts a fresh empty Postgres database. The tables (users, expenses, budgets) do not exist until you run the migration script.
+
+5.1  What the Migration Script Does
+File: backend/src/config/migrate.js
+
+// migrate.js creates all tables if they don't already exist
+
+CREATE TABLE IF NOT EXISTS users (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name         VARCHAR(255) NOT NULL,
+  email        VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255),
+  google_id    VARCHAR(255) UNIQUE,
+  avatar_url   TEXT,
+  gemini_api_key TEXT,
+  created_at   TIMESTAMP DEFAULT NOW(),
+  updated_at   TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS expenses (...);
+CREATE TABLE IF NOT EXISTS budgets (...);
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+-- ... more indexes ...
+
+5.2  How to Run Migrations
+After starting containers, run this once:
+
+# Find the backend container name first:
+docker ps
+# Look for a container with 'backend' in the name, e.g. spendai-backend-1
+
+# Run the migration:
+docker exec spendai-backend-1 node src/config/migrate.js
+
+# Expected output:
+# PostgreSQL connected
+# Running migrations...
+# All migrations completed successfully
+
+IF NOT EXISTS means the migration is safe to run multiple times.
+Running it again will not delete existing data or duplicate tables.
+Run it again any time you add new tables to migrate.js.
+
+5.3  Auto-Run Migrations on Startup (Recommended)
+To avoid running migrations manually every time, update the backend command in docker-compose.yml:
+
+# docker-compose.yml — backend service command
+
+# BEFORE (manual migration required):
+command: sh -c 'npm install && chmod -R +x node_modules/.bin/ && npm run dev'
+
+# AFTER (migration runs automatically on every start):
+command: sh -c 'npm install && chmod -R +x node_modules/.bin/ && node src/config/migrate.js && npm run dev'
+
+6.  Useful Docker Commands for Daily Use
+
+Command
+What it does
+docker ps
+See all running containers and their names/ports
+docker-compose up
+Start all services (shows logs in terminal)
+docker-compose up -d
+Start all services in background (detached)
+docker-compose down
+Stop and remove containers (data is safe)
+docker-compose down -v
+Stop + delete ALL data including database
+docker-compose logs -f
+Stream logs from all services
+docker-compose logs backend
+Show logs from backend only
+docker exec -it spendai-backend-1 sh
+Open a shell inside the backend container
+docker exec spendai-db-1 psql -U username -d spendai_db
+Open Postgres CLI directly
+docker-compose up --build --force-recreate
+Full rebuild — use when things break
+
+7.  What We Would Have Done Without Docker
+This section explains every manual step Docker replaces.
+
+7.1  Install Everything Manually
+    • Install PostgreSQL 16 on your OS (different steps for Ubuntu, Mac, Windows).
+    • Create a database user and password manually via psql command line.
+    • Create the spendai_db database manually.
+    • Install Node.js 20 exactly — wrong version causes subtle bugs.
+    • Install npm packages in both frontend/ and backend/ separately.
+
+7.2  Start Services Manually — Three Separate Terminals
+Every time you want to work, open 3 terminal windows:
+
+# Terminal 1 — Start Postgres
+sudo systemctl start postgresql     # Linux
+brew services start postgresql@16   # Mac
+
+# Terminal 2 — Start Backend
+cd backend
+npm install
+npm run dev
+
+# Terminal 3 — Start Frontend
+cd frontend
+npm install
+npm start
+
+With Docker: ./start-dev.sh — one command, one terminal, all three services.
+Without Docker: 3 terminals, 6+ commands, hope Postgres started before the backend tried to connect.
+
+7.3  Version Problems Without Docker
+    • Your machine has Node 18, your teammate has Node 22 — different behaviour, hard to debug.
+    • A system update changes your Postgres version and breaks queries.
+    • You work on two projects needing different Node versions — painful to switch.
+    • CI/CD server has different OS than your laptop — 'works on my machine' problem.
+
+Docker solves all of this by pinning exact versions in docker-compose.yml. Everyone runs postgres:16-alpine and node:20-alpine — always.
+
+7.4  Environment Variables Without Docker
+Without Docker you would manually:
+    • Create .env files and make sure they are in the right directories.
+    • Export variables in your shell profile or run export DATABASE_URL=... before starting.
+    • Remember to update them when they change.
+
+With Docker, env_file: in docker-compose.yml automatically injects all variables into the container.
+
+8.  Project File Structure for Docker
+
+spendai/                          ← project root
+├── docker-compose.yml            ← defines all 3 services
+├── build-and-run.sh             ← first-time / clean rebuild script
+├── start-dev.sh                 ← daily start script
+├── stop-dev.sh                  ← shutdown script
+│
+├── backend/                     ← Node.js API
+│   ├── .env                     ← backend environment variables
+│   ├── package.json
+│   └── src/
+│       ├── config/
+│       │   ├── db.js            ← PostgreSQL connection pool
+│       │   └── migrate.js       ← creates tables on first run
+│       ├── controllers/
+│       │   └── authController.js
+│       └── routes/
+│           └── auth.js
+│
+└── frontend/                    ← React app
+    ├── .env                     ← REACT_APP_ variables
+    ├── package.json
+    └── src/
+        ├── index.js             ← GoogleOAuthProvider wraps App
+        ├── App.js
+        ├── api/index.js         ← axios client
+        ├── context/AuthContext.js
+        └── pages/AuthPage.js
+
+9.  Quick Reference Card
+
+Situation
+Command to run
+First time setup
+./build-and-run.sh
+Start working (daily)
+./start-dev.sh
+Stop for the day
+./stop-dev.sh
+Tables don't exist yet
+docker exec spendai-backend-1 node src/config/migrate.js
+Something is broken
+./build-and-run.sh (clean rebuild)
+See running containers
+docker ps
+See logs
+docker-compose logs -f
+Wipe entire database
+docker-compose down -v  (careful!)
+Open Postgres CLI
+docker exec -it spendai-db-1 psql -U username -d spendai_db
+
+
+SUMMARY — What Docker gives SpendAI:
+  ✓  One command starts Postgres + Node backend + React frontend
+  ✓  Locked versions — postgres:16-alpine and node:20-alpine always
+  ✓  Health checks — backend waits for Postgres before connecting
+  ✓  Data persistence — postgres_data volume survives restarts
+  ✓  Hot reload — bind mounts mean file changes appear instantly
+  ✓  Portable — clone repo + docker-compose up = working app anywhere

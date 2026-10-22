@@ -11,7 +11,7 @@ error()   { echo -e "\033[0;31m[✘]\033[0m $1"; exit 1; }
 
 # Check .env files
 log "Checking .env files..."
-[[ -f "$PROJECT_ROOT/backend/.env" ]]  || error "Missing backend/.env"
+[[ -f "$PROJECT_ROOT/backend-fastapi/.env" ]] || error "Missing backend-fastapi/.env"
 [[ -f "$PROJECT_ROOT/frontend/.env" ]] || error "Missing frontend/.env"
 success ".env files found."
 

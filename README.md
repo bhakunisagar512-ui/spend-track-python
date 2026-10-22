@@ -1,6 +1,6 @@
 # spendAI — AI-Powered Expense Tracker
 
-Full-stack expense tracker with Gemini AI parsing, React frontend, Express + PostgreSQL backend, and Google OAuth.
+Full-stack expense tracker with Gemini AI parsing, React frontend, FastAPI (Python) + PostgreSQL backend, and Google OAuth.
 
 ---
 
@@ -8,14 +8,15 @@ Full-stack expense tracker with Gemini AI parsing, React frontend, Express + Pos
 
 ```
 spendai/
-├── backend/               # Node.js + Express + PostgreSQL
-│   ├── src/
+├── backend-fastapi/       # Python + FastAPI + PostgreSQL
+│   ├── app/
 │   │   ├── config/        # DB connection + migrations
 │   │   ├── controllers/   # auth, expenses, budgets
-│   │   ├── middleware/    # JWT auth guard
+│   │   ├── middleware/    # JWT auth guard, security headers, CORS, rate limits
 │   │   └── routes/        # API route definitions
 │   ├── .env.example
-│   └── package.json
+│   ├── Dockerfile
+│   └── requirements.txt
 │
 └── frontend/              # React app
     ├── src/
@@ -46,20 +47,21 @@ CREATE DATABASE spendai_db;
 ## 2. Backend Setup
 
 ```bash
-cd backend
+cd backend-fastapi
 
-# Install dependencies
-npm install
+# Install dependencies (Python 3.10+)
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
 # Edit .env with your values (see below)
 
 # Run DB migrations (creates tables)
-npm run db:migrate
+.venv/bin/python -m app.config.migrate
 
-# Start development server
-npm run dev
+# Start development server (auto-reload)
+.venv/bin/python -m app --reload
 ```
 
 ### Backend `.env` values
@@ -162,8 +164,8 @@ npm start
 |-------|-----------|
 | Frontend | React 18, React Router v6, Chart.js, Axios |
 | Auth UI | @react-oauth/google |
-| Backend | Node.js, Express 4 |
-| Database | PostgreSQL (via `pg`) |
+| Backend | Python, FastAPI, Uvicorn |
+| Database | PostgreSQL (via `psycopg` 3) |
 | Auth | JWT + bcrypt + Google OAuth |
 | AI | Gemini 2.0 Flash (via REST API) |
-| Security | helmet, express-rate-limit, CORS |
+| Security | Security headers, per-IP rate limiting, CORS |

@@ -11,7 +11,7 @@ error()   { echo -e "\033[0;31m[✘]\033[0m $1"; exit 1; }
 
 # ── Check .env files ──────────────────────────────────────────────────────────
 log "Checking .env files..."
-[[ -f "$PROJECT_ROOT/backend/.env" ]]  || error "Missing backend/.env"
+[[ -f "$PROJECT_ROOT/backend-fastapi/.env" ]] || error "Missing backend-fastapi/.env"
 [[ -f "$PROJECT_ROOT/frontend/.env" ]] || error "Missing frontend/.env"
 success ".env files found."
 
@@ -21,8 +21,8 @@ docker-compose down --remove-orphans
 success "Old containers removed. Volumes kept."
 
 # ── Start all services ────────────────────────────────────────────────────────
-log "Starting all services..."
-docker-compose up -d
+log "Building and starting all services..."
+docker-compose up -d --build
 success "Containers started. Waiting for servers..."
 
 # ── Stream logs in background so user sees real progress ──────────────────────
@@ -45,22 +45,6 @@ wait_for_db() {
   error "Database failed to start. Check: docker-compose logs -f db"
 }
 
-# ── Wait for npm install to finish inside backend ─────────────────────────────
-wait_for_backend_ready() {
-  local attempts=0
-  log "Waiting for backend npm install to finish..."
-  while [[ $attempts -lt 60 ]]; do
-    if docker exec spendai-backend-1 test -f /app/node_modules/.package-lock.json 2>/dev/null; then
-      success "Backend dependencies ready."
-      return 0
-    fi
-    attempts=$((attempts + 1))
-    sleep 3
-  done
-  kill $LOGS_PID 2>/dev/null
-  error "Backend npm install timed out. Check: docker-compose logs -f backend"
-}
-
 # ── Wait for HTTP endpoints ───────────────────────────────────────────────────
 wait_for_http() {
   local name=$1
@@ -80,17 +64,10 @@ wait_for_http() {
 }
 
 wait_for_db
-wait_for_backend_ready
 
-# ── Run migrations (idempotent — safe to run every time) ──────────────────────
-log "Running migrations..."
-docker exec spendai-backend-1 node src/config/migrate.js || {
-  kill $LOGS_PID 2>/dev/null
-  error "Migration failed. Check: docker-compose logs -f backend"
-}
-success "Migrations complete."
-
-wait_for_http "Backend"  "http://localhost:5000"
+# The backend container runs migrations (idempotent) before starting the API,
+# so a healthy /health means the schema is in place
+wait_for_http "Backend"  "http://localhost:5000/health"
 wait_for_http "Frontend" "http://localhost:3000"
 
 # ── Kill background log stream once everything is up ─────────────────────────

@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>spend&amp;Track — Project Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+  :root {
+    --ink: #1c2421; --ink2: #4a5550; --ink3: #7a857f; --line: #d6dcd8;
+    --accent: #2f8f6b; --accent-soft: #e6f3ed; --fe: #e8f0fb; --fe-line: #4b6a88;
+    --be: #fdf3e6; --be-line: #c07a2c; --db: #eef2e8; --db-line: #5f7d3a; --ext: #f6eaf0; --ext-line: #9a4a72;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 26pt; margin: 0 0 6px; letter-spacing: -0.5px; }
+  h2 { font-size: 15pt; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); break-after: avoid; }
+  h3 { font-size: 12pt; margin: 16px 0 6px; color: var(--accent); break-after: avoid; }
+  h4 { font-size: 10.5pt; margin: 12px 0 4px; break-after: avoid; }
+  p { margin: 4px 0 8px; }
+  code, .mono { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8.8pt; background: #f2f4f3; padding: 0 3px; border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9pt; break-inside: auto; }
+  th, td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 700; }
+  tr { break-inside: avoid; }
+  td code { background: none; padding: 0; }
+  .page-break { break-before: page; }
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover .sub { font-size: 13pt; color: var(--ink2); margin-bottom: 26px; }
+  .pill { display: inline-block; border: 1px solid var(--line); border-radius: 20px; padding: 2px 10px; margin: 0 6px 6px 0; font-size: 9pt; }
+  .toc { columns: 2; font-size: 10pt; margin-top: 20px; }
+  .toc div { margin-bottom: 3px; }
+  .note { background: #fff8e6; border-left: 4px solid #c69238; padding: 6px 10px; margin: 8px 0; font-size: 9.5pt; break-inside: avoid; }
+  .figure { break-inside: avoid; margin: 8px 0 14px; }
+  .figure svg { width: 100%; height: auto; display: block; }
+  .caption { font-size: 8.5pt; color: var(--ink3); text-align: center; margin-top: 4px; }
+  /* step flows */
+  .flow { display: flex; flex-direction: column; align-items: stretch; margin: 6px 0 12px; break-inside: avoid; }
+  .step { border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; font-size: 9pt; background: #fff; }
+  .step b { font-size: 9pt; }
+  .step .where { display: block; font-family: "DejaVu Sans Mono", monospace; font-size: 8pt; color: var(--ink3); }
+  .step.fe { background: var(--fe); border-color: var(--fe-line); }
+  .step.be { background: var(--be); border-color: var(--be-line); }
+  .step.db { background: var(--db); border-color: var(--db-line); }
+  .step.ext { background: var(--ext); border-color: var(--ext-line); }
+  .arrow { text-align: center; color: var(--ink3); font-size: 10pt; line-height: 1; margin: 1px 0; }
+  .branch { display: flex; gap: 8px; }
+  .branch > .step { flex: 1; }
+  .legend span { display: inline-block; padding: 1px 8px; border-radius: 4px; margin-right: 6px; font-size: 8.5pt; border: 1px solid; }
+  .tree { font-family: "DejaVu Sans Mono", monospace; font-size: 8.5pt; background: #f7f8f7; border: 1px solid var(--line); padding: 8px 10px; white-space: pre; line-height: 1.35; break-inside: avoid; }
+  ul { margin: 4px 0 8px 18px; padding: 0; }
+  li { margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ COVER ═══════════════════════════════ -->
+<section class="cover">
+  <div style="font-size:11pt;color:var(--accent);font-weight:700;letter-spacing:2px;">PROJECT GUIDE</div>
+  <h1>spend<span style="color:var(--accent)">&amp;</span>Track</h1>
+  <div class="sub">AI-assisted personal expense tracker — React frontend · FastAPI backend · PostgreSQL</div>
+  <div>
+    <span class="pill">React 18 + React Router 6</span><span class="pill">Tailwind CSS</span><span class="pill">Chart.js</span>
+    <span class="pill">FastAPI + Uvicorn</span><span class="pill">psycopg 3 (async pool)</span><span class="pill">PostgreSQL 16</span>
+    <span class="pill">JWT + bcrypt</span><span class="pill">Google OAuth</span><span class="pill">Gemini 2.0 Flash</span><span class="pill">PWA</span>
+  </div>
+  <div class="toc">
+    <div>1. Overview &amp; scope</div>
+    <div>2. System architecture (flow diagram)</div>
+    <div>3. Backend request lifecycle</div>
+    <div>4. Folder structure</div>
+    <div>5. Feature list &amp; logic flows</div>
+    <div>6. Backend — file &amp; function reference</div>
+    <div>7. Frontend — file &amp; function reference</div>
+    <div>8. API reference (endpoint → controller → UI caller)</div>
+    <div>9. Database schema</div>
+    <div>10. Configuration &amp; running</div>
+    <div>11. Observations &amp; notes</div>
+  </div>
+  <p style="margin-top:28px;font-size:9pt;color:var(--ink3)">Generated 1 October 2026 from the repository at <code>spendandtrack/</code>. The Node/Express backend (<code>backend/</code>) is out of scope; this guide covers <code>frontend/</code> and <code>backend-fastapi/</code>.</p>
+</section>
+
+<!-- ═══════════════════════════════ 1. OVERVIEW ═══════════════════════════════ -->
+<h2 class="page-break">1. Overview &amp; scope</h2>
+<p><b>spend&amp;Track</b> (internally "spendAI") lets a user log expenses in plain text such as <code>250 uber</code>, auto-categorises them (keyword rules first, Gemini AI as a fallback), shows monthly statistics, a category doughnut chart and a 10-day trend chart, tracks per-category budget limits with alerts, and answers natural-language questions about spending through Gemini. It can be used with an account (email/password or Google) or as a <b>guest</b> whose data never leaves the browser. It is installable as a PWA.</p>
+<table>
+  <tr><th style="width:22%">Layer</th><th style="width:30%">Location</th><th>Technology</th></tr>
+  <tr><td>Frontend (SPA)</td><td><code>frontend/</code></td><td>React 18 (Create React App), React Router 6, Tailwind CSS 3 + inline styles, Chart.js 4 via react-chartjs-2, Axios, @react-oauth/google, service worker</td></tr>
+  <tr><td>Backend (REST API)</td><td><code>backend-fastapi/</code></td><td>FastAPI, Uvicorn, psycopg 3 + psycopg-pool (async), PyJWT, bcrypt, google-auth, httpx, python-dotenv</td></tr>
+  <tr><td>Database</td><td><code>backend-fastapi/database/schema.sql</code>, <code>app/config/migrate.py</code></td><td>PostgreSQL 16 (3 tables: users, expenses, budgets)</td></tr>
+  <tr><td>External services</td><td>—</td><td>Google Identity (OAuth sign-in), Google Gemini 2.0 Flash (called directly from the browser)</td></tr>
+  <tr><td>Infra</td><td><code>backend-fastapi/Dockerfile</code>, <code>backend-fastapi/docker-compose.yml</code>, <code>frontend/nginx.conf</code></td><td>Docker (db + FastAPI + React dev server), nginx config for a static production build</td></tr>
+</table>
+
+<!-- ═══════════════════════════════ 2. ARCHITECTURE ═══════════════════════════════ -->
+<h2>2. System architecture</h2>
+<div class="legend" style="margin-bottom:6px">
+  <span style="background:var(--fe);border-color:var(--fe-line)">Frontend</span>
+  <span style="background:var(--be);border-color:var(--be-line)">Backend</span>
+  <span style="background:var(--db);border-color:var(--db-line)">Database</span>
+  <span style="background:var(--ext);border-color:var(--ext-line)">External</span>
+</div>
+<div class="figure">
+<svg viewBox="0 0 770 760" xmlns="http://www.w3.org/2000/svg" font-family="DejaVu Sans, Arial, sans-serif" font-size="10.5">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a6661"/></marker>
+  </defs>
+  <style>
+    .fe{fill:#e8f0fb;stroke:#4b6a88} .be{fill:#fdf3e6;stroke:#c07a2c} .db{fill:#eef2e8;stroke:#5f7d3a} .ex{fill:#f6eaf0;stroke:#9a4a72}
+    .box{stroke-width:1.2} .ct{fill:none;stroke-width:1.5;stroke-dasharray:5 3}
+    .t{text-anchor:middle} .b{font-weight:700} .s{font-size:9px;fill:#4a5550} .lbl{font-size:10px;font-weight:700;letter-spacing:1px}
+    .ln{stroke:#5a6661;stroke-width:1.3;fill:none}
+  </style>
+
+  <!-- User -->
+  <rect class="box ex" x="270" y="8" width="220" height="38" rx="19"/>
+  <text class="t b" x="380" y="31">User · Browser / installed PWA</text>
+  <line class="ln" x1="380" y1="46" x2="380" y2="78" marker-end="url(#a)"/>
+
+  <!-- Frontend container -->
+  <rect class="ct" x="16" y="80" width="568" height="252" rx="10" stroke="#4b6a88"/>
+  <text class="lbl" x="28" y="98" fill="#4b6a88">REACT FRONTEND  ·  frontend/src</text>
+
+  <rect class="box fe" x="32" y="108" width="160" height="46" rx="6"/>
+  <text class="t b" x="112" y="126">index.js</text><text class="t s" x="112" y="142">mount + service-worker.js</text>
+  <rect class="box fe" x="210" y="108" width="180" height="46" rx="6"/>
+  <text class="t b" x="300" y="126">App.js</text><text class="t s" x="300" y="142">GoogleOAuthProvider · Router</text>
+  <rect class="box fe" x="408" y="108" width="160" height="46" rx="6"/>
+  <text class="t b" x="488" y="126">context/AuthContext.js</text><text class="t s" x="488" y="142">user · token · guest flag</text>
+  <line class="ln" x1="192" y1="131" x2="208" y2="131" marker-end="url(#a)"/>
+  <line class="ln" x1="390" y1="131" x2="406" y2="131" marker-end="url(#a)"/>
+
+  <rect class="box fe" x="32" y="180" width="110" height="46" rx="6"/>
+  <text class="t b" x="87" y="198">AuthPage</text><text class="t s" x="87" y="214">/login</text>
+  <rect class="box fe" x="154" y="180" width="110" height="46" rx="6"/>
+  <text class="t b" x="209" y="198">Dashboard</text><text class="t s" x="209" y="214">/  (protected)</text>
+  <rect class="box fe" x="276" y="180" width="114" height="46" rx="6"/>
+  <text class="t b" x="333" y="198">SettingsPage</text><text class="t s" x="333" y="214">/settings (protected)</text>
+  <rect class="box fe" x="408" y="172" width="160" height="62" rx="6"/>
+  <text class="t b" x="488" y="189">components/</text>
+  <text class="t s" x="488" y="204">ProtectedRoute · GoogleButton</text>
+  <text class="t s" x="488" y="217">TrendChart · InstallPrompt</text>
+  <text class="t s" x="488" y="229">hooks/useIsMobile</text>
+  <line class="ln" x1="300" y1="154" x2="300" y2="166"/><line class="ln" x1="87" y1="166" x2="333" y2="166"/>
+  <line class="ln" x1="87" y1="166" x2="87" y2="178" marker-end="url(#a)"/>
+  <line class="ln" x1="209" y1="166" x2="209" y2="178" marker-end="url(#a)"/>
+  <line class="ln" x1="333" y1="166" x2="333" y2="178" marker-end="url(#a)"/>
+
+  <rect class="box fe" x="32" y="258" width="160" height="56" rx="6"/>
+  <text class="t b" x="112" y="277">api/guestStore.js</text><text class="t s" x="112" y="292">guest data in sessionStorage</text><text class="t s" x="112" y="305">(no server calls)</text>
+  <rect class="box fe" x="210" y="258" width="180" height="56" rx="6"/>
+  <text class="t b" x="300" y="277">api/index.js</text><text class="t s" x="300" y="292">axios · adds Bearer JWT</text><text class="t s" x="300" y="305">401 → logout · guest switch</text>
+  <rect class="box fe" x="408" y="258" width="160" height="56" rx="6"/>
+  <text class="t b" x="488" y="277">utils/gemini.js</text><text class="t s" x="488" y="292">parseExpense · askGemini</text><text class="t s" x="488" y="305">categories · fmt()</text>
+  <line class="ln" x1="209" y1="226" x2="280" y2="256" marker-end="url(#a)"/>
+  <line class="ln" x1="230" y1="226" x2="460" y2="256" marker-end="url(#a)"/>
+  <line class="ln" x1="210" y1="286" x2="194" y2="286" marker-end="url(#a)"/>
+
+  <!-- External -->
+  <rect class="box ex" x="602" y="108" width="140" height="62" rx="6"/>
+  <text class="t b" x="672" y="128">Google Identity</text><text class="t s" x="672" y="144">OAuth popup ·</text><text class="t s" x="672" y="157">tokeninfo · userinfo</text>
+  <rect class="box ex" x="602" y="252" width="140" height="62" rx="6"/>
+  <text class="t b" x="672" y="272">Google Gemini</text><text class="t s" x="672" y="288">gemini-2.0-flash</text><text class="t s" x="672" y="301">generateContent</text>
+  <line class="ln" x1="568" y1="200" x2="600" y2="150" marker-end="url(#a)"/>
+  <text class="s" x="572" y="186">popup</text>
+  <line class="ln" x1="568" y1="286" x2="600" y2="286" marker-end="url(#a)"/>
+
+  <!-- HTTP -->
+  <line class="ln" x1="300" y1="314" x2="300" y2="370" marker-end="url(#a)"/>
+  <text class="s" x="308" y="346">HTTPS JSON  /api/*   Authorization: Bearer &lt;JWT&gt;</text>
+
+  <!-- Backend container -->
+  <rect class="ct" x="16" y="372" width="568" height="290" rx="10" stroke="#c07a2c"/>
+  <text class="lbl" x="28" y="390" fill="#c07a2c">FASTAPI BACKEND  ·  backend-fastapi/app   (main.py, uvicorn via __main__.py)</text>
+
+  <text class="s" x="32" y="408">middleware/express.py  (request order →)</text>
+  <g>
+    <rect class="box be" x="32"  y="414" width="80" height="32" rx="5"/><text class="t" x="72"  y="434">Helmet</text>
+    <rect class="box be" x="122" y="414" width="80" height="32" rx="5"/><text class="t" x="162" y="434">CORS</text>
+    <rect class="box be" x="212" y="414" width="80" height="32" rx="5"/><text class="t" x="252" y="434">Routing</text>
+    <rect class="box be" x="302" y="414" width="80" height="32" rx="5"/><text class="t" x="342" y="430">BodyParser</text><text class="t s" x="342" y="442">JSON ≤10KB</text>
+    <rect class="box be" x="392" y="414" width="80" height="32" rx="5"/><text class="t" x="432" y="430">RateLimit</text><text class="t s" x="432" y="442">100 / 20 per 15m</text>
+    <rect class="box be" x="482" y="414" width="86" height="32" rx="5"/><text class="t" x="525" y="430">ErrorHandler</text><text class="t s" x="525" y="442">500 fallback</text>
+    <line class="ln" x1="112" y1="430" x2="120" y2="430" marker-end="url(#a)"/>
+    <line class="ln" x1="202" y1="430" x2="210" y2="430" marker-end="url(#a)"/>
+    <line class="ln" x1="292" y1="430" x2="300" y2="430" marker-end="url(#a)"/>
+    <line class="ln" x1="382" y1="430" x2="390" y2="430" marker-end="url(#a)"/>
+    <line class="ln" x1="472" y1="430" x2="480" y2="430" marker-end="url(#a)"/>
+  </g>
+  <line class="ln" x1="300" y1="446" x2="300" y2="462" marker-end="url(#a)"/>
+
+  <rect class="box be" x="32"  y="464" width="160" height="38" rx="6"/><text class="t b" x="112" y="480">routes/auth.py</text><text class="t s" x="112" y="494">/api/auth/*</text>
+  <rect class="box be" x="210" y="464" width="180" height="38" rx="6"/><text class="t b" x="300" y="480">routes/expenses.py</text><text class="t s" x="300" y="494">/api/expenses/*</text>
+  <rect class="box be" x="408" y="464" width="160" height="38" rx="6"/><text class="t b" x="488" y="480">routes/budgets.py</text><text class="t s" x="488" y="494">/api/budgets/*</text>
+
+  <rect class="box be" x="32" y="512" width="536" height="26" rx="6" style="fill:#fbe7cf"/>
+  <text class="t" x="300" y="529"><tspan class="b">middleware/auth.py · auth_middleware</tspan>  — Depends(): verify JWT → load user → request.state.user  (/me, /api-key, all expenses &amp; budgets)</text>
+
+  <rect class="box be" x="32"  y="548" width="160" height="38" rx="6"/><text class="t b" x="112" y="564">auth_controller.py</text><text class="t s" x="112" y="578">register · login · google · me</text>
+  <rect class="box be" x="210" y="548" width="180" height="38" rx="6"/><text class="t b" x="300" y="564">expense_controller.py</text><text class="t s" x="300" y="578">CRUD · stats · daily</text>
+  <rect class="box be" x="408" y="548" width="160" height="38" rx="6"/><text class="t b" x="488" y="564">budget_controller.py</text><text class="t s" x="488" y="578">list · upsert · delete</text>
+  <line class="ln" x1="112" y1="502" x2="112" y2="510"/><line class="ln" x1="300" y1="502" x2="300" y2="510"/><line class="ln" x1="488" y1="502" x2="488" y2="510"/>
+  <line class="ln" x1="112" y1="538" x2="112" y2="546" marker-end="url(#a)"/><line class="ln" x1="300" y1="538" x2="300" y2="546" marker-end="url(#a)"/><line class="ln" x1="488" y1="538" x2="488" y2="546" marker-end="url(#a)"/>
+
+  <rect class="box be" x="32" y="604" width="536" height="44" rx="6"/>
+  <text class="t b" x="300" y="621">config/db.py — AsyncConnectionPool (1–10) · query(sql, $1..$n)</text>
+  <text class="t s" x="300" y="637">utils/js.py (JS-style validation &amp; param coercion) · utils/http.py (send, body, ApiError, JsJSONResponse) · config/env.py (.env)</text>
+  <line class="ln" x1="112" y1="586" x2="112" y2="602" marker-end="url(#a)"/><line class="ln" x1="300" y1="586" x2="300" y2="602" marker-end="url(#a)"/><line class="ln" x1="488" y1="586" x2="488" y2="602" marker-end="url(#a)"/>
+
+  <!-- backend → Google -->
+  <polyline class="ln" points="192,567 200,567 200,596 590,596 590,140 600,140" marker-end="url(#a)"/>
+  <text class="s" x="594" y="380" transform="rotate(-90 594 380)" text-anchor="middle">verify Google token (google-auth / httpx)</text>
+
+  <!-- DB -->
+  <line class="ln" x1="300" y1="648" x2="300" y2="686" marker-end="url(#a)"/>
+  <text class="s" x="308" y="671">SQL over psycopg 3</text>
+  <rect class="box db" x="160" y="688" width="280" height="56" rx="8"/>
+  <text class="t b" x="300" y="708">PostgreSQL 16 · spendai_db</text>
+  <text class="t s" x="300" y="724">users · expenses · budgets</text>
+  <text class="t s" x="300" y="737">created by migrate.py / database/schema.sql</text>
+</svg>
+<div class="caption">Figure 1 — End-to-end architecture. Guest sessions stop at <code>api/guestStore.js</code>; Gemini is called directly from the browser.</div>
+</div>
+
+<!-- ═══════════════════════════════ 3. LIFECYCLE ═══════════════════════════════ -->
+<h2 class="page-break">3. Backend request lifecycle</h2>
+<p>Every HTTP request to the FastAPI app passes through the same pipeline. Middleware is registered in <code>app/main.py</code> (Starlette runs the last-added first, so they are added innermost → outermost).</p>
+<div class="flow">
+  <div class="step fe"><b>Browser</b> — <code>api/index.js</code> request interceptor attaches <code>Authorization: Bearer &lt;spendai_token&gt;</code><span class="where">frontend/src/api/index.js · api.interceptors.request</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>HelmetMiddleware</b> — adds security headers (CSP, HSTS, X-Frame-Options, nosniff …)<span class="where">app/middleware/express.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>CORSMiddleware</b> — allows <code>CLIENT_URL</code> with credentials; answers every <code>OPTIONS</code> preflight with 204 directly<span class="where">app/middleware/express.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>ExpressRoutingMiddleware</b> — strips a trailing slash; serves <code>HEAD</code> via the <code>GET</code> route with an empty body<span class="where">app/middleware/express.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>BodyParserMiddleware</b> — parses <code>application/json</code> into <code>request.state.body</code>; &gt;10 KB or invalid JSON → 500 <code>{"error":"Internal server error"}</code><span class="where">app/middleware/express.py · utils/http.py body()</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>RateLimitMiddleware</b> — in-memory per-IP: 100 req / 15 min on <code>/api</code>, 20 / 15 min on <code>/api/auth</code>; over limit → 429 + <code>Retry-After</code><span class="where">app/middleware/express.py · _Limiter.hit()</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>ErrorHandlerMiddleware</b> — catches any unhandled exception → 500 JSON<span class="where">app/middleware/express.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>Router match</b> (<code>routes/*.py</code>) → <b>Depends(auth_middleware)</b> for protected routes: decode JWT (HS256/384/512), load user row, set <code>request.state.user</code>; failures raise <code>ApiError(401, …)</code><span class="where">app/routes/*.py · app/middleware/auth.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>Controller</b> — validates input with <code>utils/js.py</code>, runs SQL with <code>db.query()</code>, returns <code>send(status, json)</code><span class="where">app/controllers/*_controller.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step db"><b>PostgreSQL</b> — results come back as dicts; NUMERIC / BIGINT / UUID as strings, timestamps as ISO-8601 UTC strings<span class="where">app/config/db.py · _register_loaders, _JsDateLoader</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be"><b>Response</b> — <code>JsJSONResponse</code> serialises like <code>JSON.stringify</code>; <code>ApiError</code> → <code>{"error": msg}</code>; unknown route → 404 <code>{"error":"Route not found"}</code><span class="where">app/utils/http.py · app/main.py api_error_handler / not_found_handler</span></div>
+</div>
+<div class="note">Why so much "Express" logic? <code>backend-fastapi</code> is a drop-in port of the original Express API: same URLs, JSON shapes, status codes, JWTs and bcrypt hashes. That is why the React frontend works against it with zero changes, and why helpers such as <code>utils/js.py</code> reproduce JavaScript semantics (<code>truthy</code>, <code>parseFloat</code>, <code>isNaN</code>).</div>
+
+<!-- ═══════════════════════════════ 4. FOLDERS ═══════════════════════════════ -->
+<h2>4. Folder structure</h2>
+<div class="tree">spendandtrack/
+├── frontend/                      React SPA
+│   ├── public/                    index.html, manifest.json, service-worker.js, icons
+│   ├── src/
+│   │   ├── index.js               React root + service-worker registration
+│   │   ├── App.js                 Providers + routes
+│   │   ├── index.css              Tailwind layers + fonts
+│   │   ├── tailwindTheme.js       Colour/font tokens (Tailwind + inline styles)
+│   │   ├── api/index.js           Axios client, auth/expenses/budgets APIs
+│   │   ├── api/guestStore.js      Guest-mode in-browser backend
+│   │   ├── context/AuthContext.js Auth state + actions
+│   │   ├── components/            ProtectedRoute, GoogleButton, TrendChart, InstallPrompt
+│   │   ├── hooks/useIsMobile.js   Responsive breakpoint hook
+│   │   ├── pages/                 AuthPage, Dashboard, SettingsPage
+│   │   └── utils/gemini.js        Expense parsing, AI Q&amp;A, categories, currency format
+│   ├── tailwind.config.js · postcss.config.js · nginx.conf · .env(.example)
+│   └── package.json
+├── backend-fastapi/               FastAPI REST API
+│   ├── app/
+│   │   ├── __main__.py            `python -m app` → uvicorn
+│   │   ├── main.py                FastAPI app, middleware, error handlers, routers, /health
+│   │   ├── config/                env.py, db.py (pool + query), migrate.py (schema)
+│   │   ├── middleware/            auth.py (JWT guard), express.py (helmet/cors/body/rate-limit/errors)
+│   │   ├── routes/                auth.py, expenses.py, budgets.py
+│   │   ├── controllers/           auth_controller.py, expense_controller.py, budget_controller.py
+│   │   └── utils/                 http.py (responses), js.py (JS-compatible coercion)
+│   ├── database/schema.sql        Standalone DB script (this release)
+│   ├── requirements.txt · Dockerfile · docker-compose.yml · .env(.example)
+├── docs/                          This guide (HTML source + PDF)
+├── bin/                           Docker helper scripts (start/stop/wipe)
+└── backend/                       Legacy Node/Express backend — ignored</div>
+
+<!-- ═══════════════════════════════ 5. FEATURES ═══════════════════════════════ -->
+<h2 class="page-break">5. Feature list &amp; logic flows</h2>
+<table>
+  <tr><th style="width:4%">#</th><th style="width:24%">Feature</th><th style="width:36%">Frontend</th><th>Backend / storage</th></tr>
+  <tr><td>F1</td><td>Email / password register &amp; login</td><td>AuthPage.handleSubmit → AuthContext.register / login</td><td>POST /api/auth/register, /login → auth_controller.register / login</td></tr>
+  <tr><td>F2</td><td>Google sign-in</td><td>GoogleButton (useGoogleLogin popup) → AuthPage.handleGoogle → AuthContext.googleTokenLogin</td><td>POST /api/auth/google → google_auth → _get_google_profile</td></tr>
+  <tr><td>F3</td><td>Session restore &amp; route protection</td><td>AuthProvider useEffect → getMe; ProtectedRoute; axios 401 interceptor</td><td>GET /api/auth/me → auth_middleware → get_me</td></tr>
+  <tr><td>F4</td><td>Guest mode (no account)</td><td>AuthPage.handleGuest → startGuest; api/guestStore.js; withGuestFallback</td><td>None — sessionStorage only, seeded with demo data</td></tr>
+  <tr><td>F5</td><td>Natural-language expense entry</td><td>Dashboard.addExpense → parseLocal → (parseExpense via Gemini if "Other")</td><td>POST /api/expenses → create_expense</td></tr>
+  <tr><td>F6</td><td>Expense list &amp; delete</td><td>Dashboard.fetchAll, deleteExpense ("Recent Expenses")</td><td>GET /api/expenses, DELETE /api/expenses/{id}</td></tr>
+  <tr><td>F7</td><td>Month filter</td><td>Dashboard monthFilter select; months list from stats</td><td>?month=YYYY-MM on list &amp; stats (TO_CHAR(date,'YYYY-MM'))</td></tr>
+  <tr><td>F8</td><td>Stat cards &amp; category breakdown</td><td>StatCard, Doughnut chart, "Category Stats"</td><td>GET /api/expenses/stats/summary → get_stats</td></tr>
+  <tr><td>F9</td><td>10-day trend chart</td><td>components/TrendChart.js (prev/next, date picker, "Latest")</td><td>GET /api/expenses/stats/daily?from&amp;to → get_daily</td></tr>
+  <tr><td>F10</td><td>Budget limits &amp; alerts</td><td>Dashboard.addBudget, saveBudget, budgetAlerts</td><td>GET/POST /api/budgets → get_budgets / upsert_budget</td></tr>
+  <tr><td>F11</td><td>Ask AI about spending</td><td>Dashboard.doAsk → utils/gemini.askGemini</td><td>Direct call to Gemini (no backend)</td></tr>
+  <tr><td>F12</td><td>Settings &amp; logout</td><td>SettingsPage (profile card, Sign out / Exit guest)</td><td>— (clears localStorage / sessionStorage)</td></tr>
+  <tr><td>F13</td><td>Installable PWA</td><td>index.js SW registration, public/service-worker.js, InstallPrompt</td><td>—</td></tr>
+  <tr><td>F14</td><td>Responsive / mobile layout</td><td>hooks/useIsMobile (640px / 900px), Tailwind breakpoints</td><td>—</td></tr>
+  <tr><td>F15</td><td>API security</td><td>—</td><td>JWT, bcrypt cost 12, helmet headers, CORS, rate limits, 10 KB body limit</td></tr>
+  <tr><td>F16</td><td>Health check</td><td>—</td><td>GET /health → {"status":"ok","timestamp"}</td></tr>
+</table>
+
+<h3>F1 · Email / password register &amp; login</h3>
+<div class="flow">
+  <div class="step fe"><b>AuthPage</b> form (mode = login | register) → <code>handleSubmit</code><span class="where">pages/AuthPage.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>AuthContext.register(name,email,password)</code> or <code>login(email,password)</code> → <code>authAPI.register/login</code><span class="where">context/AuthContext.js · api/index.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="branch">
+    <div class="step be"><b>register</b>: require name/email/password, password ≥ 6 chars → email already exists? 409 → bcrypt hash (cost 12, $2a$) → INSERT users → 201 {token, user}<span class="where">auth_controller.register · _hash_password · generate_token</span></div>
+    <div class="step be"><b>login</b>: SELECT by lower(email) → not found 401 → no password_hash ("uses Google sign-in") 401 → bcrypt check → 200 {token, user without password_hash}<span class="where">auth_controller.login · _check_password · generate_token</span></div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>saveAuth()</code> clears guest data, stores <code>spendai_token</code> + <code>spendai_user</code> in localStorage, sets user → <code>navigate('/')</code><span class="where">context/AuthContext.js</span></div>
+</div>
+<p>JWT payload is <code>{userId, iat, exp}</code>, HS256 with <code>JWT_SECRET</code>; expiry from <code>JWT_EXPIRES_IN</code> (default <code>7d</code>, parsed by <code>_timespan_ms</code>).</p>
+
+<h3>F2 · Google sign-in</h3>
+<div class="flow">
+  <div class="step fe"><b>GoogleButton</b> click → <code>useGoogleLogin()</code> opens Google OAuth popup (implicit flow) → returns <code>access_token</code><span class="where">components/GoogleButton.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>AuthPage.handleGoogle</code> → <code>googleTokenLogin(accessToken)</code> → POST <code>/api/auth/google {access_token}</code><span class="where">pages/AuthPage.js · context/AuthContext.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step ext"><b>_get_google_profile</b>: ID token (<code>credential</code>) → <code>id_token.verify_oauth2_token</code>; access token → <code>tokeninfo</code> (aud must equal <code>GOOGLE_CLIENT_ID</code>) → <code>userinfo</code> (sub must match)<span class="where">auth_controller._get_google_profile</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be">Email must be verified → find user by <code>google_id</code> → else by email (link: set google_id + avatar) → else INSERT new user → 200 {token, user}<span class="where">auth_controller.google_auth</span></div>
+</div>
+
+<h3>F3 · Session restore &amp; route protection</h3>
+<div class="flow">
+  <div class="step fe">App load: <code>AuthProvider</code> reads cached user; if a token exists calls <code>getMe()</code> (sets <code>loading</code> while waiting)<span class="where">context/AuthContext.js useEffect</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be">GET /api/auth/me → <code>auth_middleware</code> (no token / expired / invalid / user deleted → 401) → <code>get_me</code> returns <code>request.state.user</code><span class="where">middleware/auth.py · auth_controller.get_me</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>ProtectedRoute</code>: loading → "Loading…", no user → <code>&lt;Navigate to="/login"&gt;</code>. Any later 401 (except login/register/google) → interceptor clears storage and redirects to /login<span class="where">components/ProtectedRoute.js · api/index.js response interceptor</span></div>
+</div>
+
+<h3>F4 · Guest mode</h3>
+<div class="flow">
+  <div class="step fe">"Just looking? Try guest mode" → <code>handleGuest</code> → <code>startGuest()</code>: removes JWT, sets <code>spendai_guest=1</code> in sessionStorage, seeds 21 demo expenses + 4 budgets<span class="where">pages/AuthPage.js · context/AuthContext.js · api/guestStore.js startGuestSession/buildSeed</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>withGuestFallback()</code> routes every <code>expensesAPI</code>/<code>budgetsAPI</code> call to <code>guestExpensesAPI</code>/<code>guestBudgetsAPI</code>, which mirror the server's validation and response shapes (wrapped as <code>{data}</code> like axios)<span class="where">api/index.js · api/guestStore.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe">Logout / closing the tab wipes the data (<code>clearGuestSession</code>). The server is never contacted.</div>
+</div>
+
+<h3>F5 · Natural-language expense entry</h3>
+<div class="flow">
+  <div class="step fe">User types <code>"250 chai"</code> → Enter / Add → <code>Dashboard.addExpense()</code><span class="where">pages/Dashboard.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><b>parseLocal(text)</b>: regex <code>^(\d+(\.\d+)?)\s+(.+)$</code> → amount + description; keyword regexes → category (Food, Transport, Shopping, Health, Entertainment, Recharge, Education, Grocerries) else "Other"; emoji from <code>CAT_ICONS</code>; date = today. Invalid → alert<span class="where">pages/Dashboard.js parseLocal</span></div>
+  <div class="arrow">▼</div>
+  <div class="step ext">Only if category is <b>"Other"</b> and <code>REACT_APP_GEMINI_API_KEY</code> is set: <code>parseExpense()</code> asks Gemini for <code>{amount, category, description, emoji}</code>; on failure falls back to its own keyword categoriser<span class="where">utils/gemini.js parseExpense · localCategorize</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be">POST /api/expenses → <code>create_expense</code>: amount &amp; description required, amount &gt; 0 → INSERT (defaults: category "Other", emoji 📦, date NOW()) → 201 {expense}<span class="where">controllers/expense_controller.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe">Clear input → <code>fetchAll()</code> refreshes list, stats, budgets and bumps <code>dataVersion</code> so TrendChart reloads</div>
+</div>
+
+<h3>F6–F8 · Dashboard data load, month filter, stats</h3>
+<div class="flow">
+  <div class="step fe"><code>fetchAll()</code> runs on mount and whenever <code>monthFilter</code> changes (default = current month) — three calls in parallel<span class="where">pages/Dashboard.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="branch">
+    <div class="step be">GET /api/expenses?month → <code>get_expenses</code>: dynamic WHERE (month, category), ORDER BY date DESC, LIMIT 100 OFFSET 0</div>
+    <div class="step be">GET /api/expenses/stats/summary?month → <code>get_stats</code>: 5 queries via <code>asyncio.gather</code> — totals, byCategory, last-14-days daily, thisMonth, distinct months</div>
+    <div class="step be">GET /api/budgets → <code>get_budgets</code> ordered by category</div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="step fe">Derived on the client: top category, avg/day = total ÷ activeDays, doughnut data with <code>CAT_COLORS</code>, budget map, budget alerts. Delete button → <code>deleteExpense(id)</code> → DELETE /api/expenses/{id} (scoped to user; 404 if not owned)</div>
+</div>
+
+<h3>F9 · 10-day trend chart</h3>
+<div class="flow">
+  <div class="step fe"><code>windowBounds(monthFilter, months)</code> limits the 10-day window to the selected month and never past today; default window ends today<span class="where">components/TrendChart.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe">‹ / › shift by 10 days, native date picker (<code>showPicker()</code>) chooses a start, "Latest" resets. Each change → <code>expensesAPI.getDaily({from,to})</code></div>
+  <div class="arrow">▼</div>
+  <div class="step be">GET /api/expenses/stats/daily → <code>get_daily</code>: validates YYYY-MM-DD and from ≤ to → SUM(amount) GROUP BY day in [from, to]</div>
+  <div class="arrow">▼</div>
+  <div class="step fe">Missing days filled with 0, today's bar highlighted, period total shown</div>
+</div>
+
+<h3>F10 · Budget limits &amp; alerts</h3>
+<div class="flow">
+  <div class="step fe">"Add budget" (category select + amount) → <code>addBudget()</code>; per-card edit → <code>saveBudget(cat)</code>; both call <code>budgetsAPI.upsert</code><span class="where">pages/Dashboard.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step be">POST /api/budgets → <code>upsert_budget</code>: valid category + amount &gt; 0 → <code>INSERT … ON CONFLICT (user_id, category) DO UPDATE</code><span class="where">controllers/budget_controller.py</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>budgetAlerts</code>: spent ÷ budget ≥ 100% → red "exceeded"; ≥ 80% → amber "x% — ₹y left". Progress bars per budget card</div>
+</div>
+
+<h3>F11 · Ask AI</h3>
+<div class="flow">
+  <div class="step fe">Question → <code>doAsk()</code> (disabled when no <code>REACT_APP_GEMINI_API_KEY</code>)<span class="where">pages/Dashboard.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step ext"><code>askGemini(question, stats, budgets, key)</code> builds a summary (total, count, per-category totals, budgets) and prompts Gemini for a 2–3 sentence answer in ₹<span class="where">utils/gemini.js</span></div>
+</div>
+
+<h3>F13 · Installable PWA</h3>
+<div class="flow">
+  <div class="step fe">Production build only: <code>index.js</code> registers <code>/service-worker.js</code>. SW caches the app shell, uses network-first for navigations and cache-first for <code>/static/*</code>; API (other origin) is never cached<span class="where">src/index.js · public/service-worker.js</span></div>
+  <div class="arrow">▼</div>
+  <div class="step fe"><code>InstallPrompt</code>: Chrome/Android → captures <code>beforeinstallprompt</code> and shows "Install"; iOS Safari → shows Share → Add to Home Screen instructions; dismissal remembered 7 days<span class="where">components/InstallPrompt.js</span></div>
+</div>
+
+<!-- ═══════════════════════════════ 6. BACKEND REFERENCE ═══════════════════════════════ -->
+<h2 class="page-break">6. Backend — file &amp; function reference</h2>
+<p>All paths relative to <code>backend-fastapi/app/</code>.</p>
+
+<h4>__main__.py — server entry point</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>main()</code></td><td>Starts uvicorn with <code>app.main:app</code> on <code>HOST</code>/<code>PORT</code> (default 0.0.0.0:5000); <code>--reload</code> for dev</td><td><code>python -m app</code>, Dockerfile CMD, docker-compose command</td></tr>
+</table>
+
+<h4>main.py — application assembly</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>lifespan()</code></td><td>Opens the DB pool on startup, closes it on shutdown</td><td>FastAPI app startup/shutdown</td></tr>
+  <tr><td><code>app</code></td><td>FastAPI instance; JsJSONResponse default; docs/openapi disabled; no slash redirects</td><td>uvicorn</td></tr>
+  <tr><td>middleware registration</td><td>ErrorHandler, RateLimit (/api 100, /api/auth 20 per 15 min), BodyParser, ExpressRouting, CORS(<code>CLIENT_URL</code>), Helmet</td><td>Every request</td></tr>
+  <tr><td><code>api_error_handler()</code></td><td>Turns <code>ApiError</code> into <code>{"error": message}</code> with its status</td><td>Raised by <code>auth_middleware</code></td></tr>
+  <tr><td><code>not_found_handler()</code></td><td>404/405 → <code>{"error":"Route not found"}</code>; for unknown paths under /api/expenses or /api/budgets it runs auth first so they 401 without a token</td><td>Starlette HTTPException</td></tr>
+  <tr><td><code>health()</code></td><td>GET /health → status + ISO timestamp</td><td>Monitoring / docker checks</td></tr>
+  <tr><td><code>include_router()</code> ×3</td><td>Mounts auth, expenses, budgets routers</td><td>—</td></tr>
+</table>
+
+<h4>config/env.py</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>load_env()</code></td><td>Loads <code>./.env</code> without overriding real environment variables (runs on import)</td><td>Imported first by main.py, db.py, __main__.py</td></tr>
+</table>
+
+<h4>config/db.py — database access</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>_TS_RE</code>, <code>_iso()</code>, <code>_pg_datetime_to_iso()</code></td><td>Convert Postgres timestamp/date text into ISO-8601 UTC strings (<code>…Z</code>)</td><td><code>_JsDateLoader</code></td></tr>
+  <tr><td><code>_JsDateLoader</code></td><td>psycopg loader applying the conversion above</td><td><code>_register_loaders</code></td></tr>
+  <tr><td><code>_register_loaders()</code></td><td>Returns numeric/int8/uuid as strings and timestamps as ISO strings (what the frontend expects)</td><td><code>_configure</code>, <code>connect</code></td></tr>
+  <tr><td><code>_connect_kwargs()</code></td><td>autocommit, no prepared statements, <code>sslmode=require</code> when <code>NODE_ENV=production</code></td><td><code>pool</code>, <code>connect</code></td></tr>
+  <tr><td><code>_configure()</code></td><td>Per-connection setup hook for the pool</td><td><code>pool</code></td></tr>
+  <tr><td><code>pool</code></td><td><code>AsyncConnectionPool</code> min 1 / max 10, 10 s timeout, opened in lifespan</td><td><code>query()</code>, main.lifespan</td></tr>
+  <tr><td><code>_to_psycopg(sql, params)</code></td><td>Rewrites <code>$1..$n</code> placeholders to psycopg named params; coerces values via <code>js.to_pg</code></td><td><code>query()</code></td></tr>
+  <tr><td><code>query(sql, params)</code></td><td>Runs SQL on a pooled connection, returns object with <code>.rows</code> (list of dicts)</td><td>All controllers, <code>auth_middleware</code></td></tr>
+  <tr><td><code>connect()</code></td><td>Standalone connection</td><td><code>migrate.py</code></td></tr>
+</table>
+
+<h4>config/migrate.py</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>migrate()</code></td><td>CREATE TABLE IF NOT EXISTS users / expenses / budgets + 3 indexes; exits 1 on failure</td><td><code>python -m app.config.migrate</code> (run on every docker-compose start). Same DDL as <code>database/schema.sql</code></td></tr>
+</table>
+
+<h4>middleware/auth.py</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>auth_middleware(request)</code></td><td>Requires <code>Bearer</code> header → <code>jwt.decode</code> (HS256/384/512) → SELECT user (id, name, email, avatar_url, gemini_api_key) → <code>request.state.user</code>. Errors: "No token provided", "Token expired", "Invalid token", "User not found" (all 401)</td><td><code>Depends</code> on /api/auth/me, /api/auth/api-key, entire expenses &amp; budgets routers; main.not_found_handler</td></tr>
+</table>
+
+<h4>middleware/express.py — HTTP pipeline</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>_respond()</code>, <code>_with_headers()</code></td><td>Send a response from middleware / wrap <code>send</code> to edit headers</td><td>All middleware classes below</td></tr>
+  <tr><td><code>_mounted(path, prefix)</code></td><td>Case-insensitive prefix match on segment boundary</td><td>RateLimitMiddleware, main.not_found_handler</td></tr>
+  <tr><td><code>HelmetMiddleware</code></td><td>Adds <code>HELMET_HEADERS</code> (CSP, HSTS, COOP, CORP, nosniff, X-Frame-Options…)</td><td>main.py</td></tr>
+  <tr><td><code>_vary()</code>, <code>CORSMiddleware</code></td><td>CORS for <code>CLIENT_URL</code> with credentials; full preflight handling</td><td>main.py</td></tr>
+  <tr><td><code>ExpressRoutingMiddleware</code></td><td>Optional trailing slash; HEAD → GET without body</td><td>main.py</td></tr>
+  <tr><td><code>BodyParserMiddleware</code> / <code>_parse()</code></td><td>Reads JSON body (≤ 10 KB, must be object/array, rejects NaN/Infinity) into <code>scope.state.body</code>; replays body downstream</td><td>main.py; read by <code>utils/http.body()</code></td></tr>
+  <tr><td><code>_Limiter.hit()</code>, <code>RateLimitMiddleware</code></td><td>Fixed-window per-IP counters; sets <code>X-RateLimit-*</code> headers; 429 when exceeded</td><td>main.py</td></tr>
+  <tr><td><code>ErrorHandlerMiddleware</code></td><td>Logs unhandled exceptions, returns 500 if nothing was sent yet</td><td>main.py</td></tr>
+</table>
+
+<h4>routes/*.py — URL → controller wiring</h4>
+<table>
+  <tr><th style="width:26%">File</th><th style="width:44%">Routes</th><th>Notes</th></tr>
+  <tr><td><code>routes/auth.py</code></td><td>POST /register, /login, /google · GET /me · PATCH /api-key (prefix /api/auth)</td><td>/me and /api-key use Depends(auth_middleware)</td></tr>
+  <tr><td><code>routes/expenses.py</code></td><td>GET, POST "" · PUT, DELETE /{id} · GET /stats/summary · GET /stats/daily (prefix /api/expenses)</td><td>Router-level auth dependency; <code>PREFIX</code> used by main.py</td></tr>
+  <tr><td><code>routes/budgets.py</code></td><td>GET, POST "" · DELETE /{category:path}</td><td><code>_delete_budget()</code> decodes the raw path so <code>Food%2FDrinks</code> works; literal "/" → 404</td></tr>
+</table>
+
+<h4>controllers/auth_controller.py</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>_timespan_ms(value)</code></td><td>Parses "7d", "12h", "30m" … into milliseconds</td><td><code>generate_token</code></td></tr>
+  <tr><td><code>generate_token(user_id)</code></td><td>HS256 JWT <code>{userId, iat, exp}</code> signed with JWT_SECRET</td><td>register, login, google_auth</td></tr>
+  <tr><td><code>_password_bytes()</code></td><td>UTF-8 encode, truncate to 72 bytes (bcrypt limit)</td><td>_hash_password, _check_password</td></tr>
+  <tr><td><code>_hash_password()</code></td><td>bcrypt cost 12, <code>$2a$</code> prefix, in threadpool</td><td>register</td></tr>
+  <tr><td><code>_check_password()</code></td><td>bcrypt verify in threadpool</td><td>login</td></tr>
+  <tr><td><code>_log_error()</code></td><td>Prints label + traceback</td><td>register, login, google_auth</td></tr>
+  <tr><td><code>register()</code></td><td>POST /api/auth/register — see F1</td><td>AuthContext.register</td></tr>
+  <tr><td><code>login()</code></td><td>POST /api/auth/login — see F1</td><td>AuthContext.login</td></tr>
+  <tr><td><code>_get_google_profile()</code></td><td>Verifies Google ID token or access token, returns sub/email/verified/name/picture</td><td>google_auth</td></tr>
+  <tr><td><code>google_auth()</code></td><td>POST /api/auth/google — find / link / create user — see F2</td><td>AuthContext.googleTokenLogin (and googleLogin)</td></tr>
+  <tr><td><code>get_me()</code></td><td>GET /api/auth/me → current user</td><td>AuthProvider on app load</td></tr>
+  <tr><td><code>update_api_key()</code></td><td>PATCH /api/auth/api-key → saves/clears <code>users.gemini_api_key</code></td><td>AuthContext.updateApiKey (no page calls it currently)</td></tr>
+</table>
+
+<h4>controllers/expense_controller.py</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by (frontend)</th></tr>
+  <tr><td><code>get_expenses()</code></td><td>GET /api/expenses — filters <code>month</code>, <code>category</code>; <code>limit</code> (100) / <code>offset</code> (0); newest first</td><td>Dashboard.fetchAll</td></tr>
+  <tr><td><code>create_expense()</code></td><td>POST /api/expenses — validation + INSERT with defaults</td><td>Dashboard.addExpense</td></tr>
+  <tr><td><code>update_expense(id)</code></td><td>PUT /api/expenses/{id} — partial update via COALESCE; 404 if not the user's</td><td>expensesAPI.update (no UI yet)</td></tr>
+  <tr><td><code>delete_expense(id)</code></td><td>DELETE /api/expenses/{id}; 404 if not the user's</td><td>Dashboard.deleteExpense</td></tr>
+  <tr><td><code>get_stats()</code></td><td>GET /api/expenses/stats/summary — total, count, byCategory, daily (14 d), activeDays, thisMonth, months</td><td>Dashboard.fetchAll</td></tr>
+  <tr><td><code>get_daily()</code></td><td>GET /api/expenses/stats/daily?from&amp;to — per-day totals in range</td><td>TrendChart</td></tr>
+</table>
+
+<h4>controllers/budget_controller.py</h4>
+<table>
+  <tr><th style="width:26%">Function</th><th style="width:44%">What it does</th><th>Used by (frontend)</th></tr>
+  <tr><td><code>get_budgets()</code></td><td>GET /api/budgets ordered by category</td><td>Dashboard.fetchAll</td></tr>
+  <tr><td><code>upsert_budget()</code></td><td>POST /api/budgets — insert or update on (user_id, category)</td><td>Dashboard.addBudget, saveBudget</td></tr>
+  <tr><td><code>delete_budget(category)</code></td><td>DELETE /api/budgets/{category}</td><td>budgetsAPI.delete (no UI yet)</td></tr>
+</table>
+
+<h4>utils/http.py &amp; utils/js.py</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>_js_jsonable()</code>, <code>JsJSONResponse</code></td><td>JSON like <code>JSON.stringify</code> (NaN → null, 5.0 → 5), <code>charset=utf-8</code></td><td>Default response class in main.py</td></tr>
+  <tr><td><code>send(status, content)</code></td><td>Shorthand for a JSON response</td><td>Every controller, middleware, handlers</td></tr>
+  <tr><td><code>ApiError</code></td><td>Exception carrying status + message</td><td>auth_middleware → main.api_error_handler</td></tr>
+  <tr><td><code>body(request)</code></td><td>Parsed JSON body as a dict (non-object → <code>{}</code>)</td><td>Controllers</td></tr>
+  <tr><td><code>truthy, trim, lower, length</code></td><td>JS truthiness and string helpers</td><td>Controllers' validation</td></tr>
+  <tr><td><code>to_number, is_nan, parse_float, parse_int</code></td><td>JS <code>Number()</code>, <code>isNaN</code>, <code>parseFloat</code>, <code>parseInt</code></td><td>expense/budget validation, stats</td></tr>
+  <tr><td><code>to_string, number_to_string</code></td><td>JS <code>String()</code> conversion</td><td>auth_controller, to_pg</td></tr>
+  <tr><td><code>to_pg, _date_to_pg, _array_to_pg</code></td><td>Serialise Python values as untyped Postgres text params</td><td>db._to_psycopg</td></tr>
+</table>
+
+<!-- ═══════════════════════════════ 7. FRONTEND REFERENCE ═══════════════════════════════ -->
+<h2 class="page-break">7. Frontend — file &amp; function reference</h2>
+<p>All paths relative to <code>frontend/src/</code> unless noted.</p>
+
+<h4>Entry &amp; routing</h4>
+<table>
+  <tr><th style="width:26%">File / symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>index.js</code></td><td>Renders <code>&lt;App/&gt;</code> in StrictMode; registers service worker in production</td><td><code>public/index.html</code> #root</td></tr>
+  <tr><td><code>App()</code> (App.js)</td><td>GoogleOAuthProvider(<code>REACT_APP_GOOGLE_CLIENT_ID</code>) → AuthProvider → BrowserRouter. Routes: <code>/login</code> AuthPage, <code>/</code> Dashboard*, <code>/settings</code> SettingsPage*, <code>*</code> → /. (*ProtectedRoute). Renders InstallPrompt globally</td><td>index.js</td></tr>
+  <tr><td><code>index.css</code>, <code>tailwindTheme.js</code>, <code>tailwind.config.js</code></td><td>Design tokens (dark green palette, Syne / DM Mono fonts) shared by Tailwind classes and inline styles (<code>appTheme</code> as <code>T</code>)</td><td>All pages/components</td></tr>
+</table>
+
+<h4>api/index.js — HTTP client</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>api</code> (axios)</td><td>baseURL <code>${REACT_APP_API_URL}/api</code>, 15 s timeout</td><td>All API objects below</td></tr>
+  <tr><td>request interceptor</td><td>Adds <code>Authorization: Bearer</code> from localStorage <code>spendai_token</code></td><td>Every call</td></tr>
+  <tr><td>response interceptor</td><td>401 (not on login/register/google) → clear storage, redirect /login</td><td>Every call</td></tr>
+  <tr><td><code>authAPI</code></td><td>register, login, googleAuth, googleAuthToken, getMe, updateApiKey</td><td>AuthContext</td></tr>
+  <tr><td><code>serverExpensesAPI</code></td><td>getAll, create, update, delete, getStats, getDaily</td><td>via <code>expensesAPI</code></td></tr>
+  <tr><td><code>serverBudgetsAPI</code></td><td>getAll, upsert, delete (URL-encodes category)</td><td>via <code>budgetsAPI</code></td></tr>
+  <tr><td><code>withGuestFallback()</code></td><td>Per-call switch: guest session → guestStore, else server</td><td>builds <code>expensesAPI</code>, <code>budgetsAPI</code></td></tr>
+  <tr><td><code>expensesAPI</code>, <code>budgetsAPI</code></td><td>Public APIs used by the UI</td><td>Dashboard, TrendChart</td></tr>
+</table>
+
+<h4>api/guestStore.js — guest backend</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>GUEST_USER</code>, <code>isGuestSession()</code></td><td>Fake user object; checks <code>spendai_guest</code> flag in sessionStorage</td><td>AuthContext, api/index.js</td></tr>
+  <tr><td><code>store</code>, <code>load()</code>, <code>save()</code></td><td>Safe sessionStorage wrapper; load data (re-seeding if missing)</td><td>guest APIs</td></tr>
+  <tr><td><code>buildSeed()</code>, <code>SEED_EXPENSES</code>, <code>SEED_BUDGETS</code></td><td>21 demo expenses spread over 45 days, 4 budgets</td><td>startGuestSession, load</td></tr>
+  <tr><td><code>startGuestSession()</code>, <code>clearGuestSession()</code></td><td>Begin / wipe guest mode</td><td>AuthContext.startGuest, saveAuth, logout</td></tr>
+  <tr><td><code>newId, pad, localMonth, localDay, daysAgo, toTimestamp, byDateDesc, inMonth, ok, fail</code></td><td>IDs, local-time date keys, sorting/filtering, axios-like result helpers</td><td>Internal</td></tr>
+  <tr><td><code>guestExpensesAPI</code></td><td>getAll, create, update, delete, getStats, getDaily — same rules &amp; shapes as backend</td><td>withGuestFallback</td></tr>
+  <tr><td><code>guestBudgetsAPI</code></td><td>getAll, upsert, delete</td><td>withGuestFallback</td></tr>
+</table>
+
+<h4>context/AuthContext.js — auth state</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>AuthProvider</code></td><td>Holds <code>user</code>, <code>loading</code>, <code>isGuest</code>; validates stored token with <code>getMe()</code> on mount</td><td>App.js</td></tr>
+  <tr><td><code>saveAuth(token, user)</code></td><td>Clears guest data, persists token + user</td><td>register, login, googleLogin, googleTokenLogin</td></tr>
+  <tr><td><code>register / login</code></td><td>Call authAPI and save auth</td><td>AuthPage.handleSubmit</td></tr>
+  <tr><td><code>googleTokenLogin</code></td><td>Exchange Google access token for app JWT</td><td>AuthPage.handleGoogle</td></tr>
+  <tr><td><code>googleLogin</code></td><td>Same with a Google ID token (credential)</td><td>Not used by current UI</td></tr>
+  <tr><td><code>startGuest</code></td><td>Removes JWT, starts guest session</td><td>AuthPage.handleGuest</td></tr>
+  <tr><td><code>logout</code></td><td>Clears guest + JWT storage, user = null</td><td>Dashboard top bar, SettingsPage</td></tr>
+  <tr><td><code>updateApiKey</code></td><td>PATCH user's Gemini key (skipped for guests)</td><td>Not used by current UI</td></tr>
+  <tr><td><code>useAuth()</code></td><td>Context hook; throws outside provider</td><td>Pages, ProtectedRoute</td></tr>
+</table>
+
+<h4>pages/</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>AuthPage</code></td><td>Login / register toggle form, password show/hide, Google button, guest button, error display</td><td>Route /login</td></tr>
+  <tr><td>AuthPage · <code>Logo</code>, <code>DashboardPreview</code>, <code>Field</code></td><td>Brand mark; decorative mini-dashboard on the brand panel (≥ lg screens); labelled input wrapper</td><td>AuthPage</td></tr>
+  <tr><td>AuthPage · <code>switchMode, update, handleSubmit, handleGoogle, handleGuest</code></td><td>Form state + the three sign-in paths (F1, F2, F4)</td><td>AuthPage JSX</td></tr>
+  <tr><td><code>Dashboard</code></td><td>Main screen: top bar (month select, settings, logout), Log Expense, stat cards, Category Breakdown doughnut, TrendChart, Recent Expenses (30), Category Stats, Budget Limits, Ask AI</td><td>Route /</td></tr>
+  <tr><td>Dashboard · <code>StatCard</code>, <code>currentMonthKey</code></td><td>KPI tile; "YYYY-MM" of today</td><td>Dashboard</td></tr>
+  <tr><td>Dashboard · <code>fetchAll</code></td><td>Parallel load of expenses, stats, budgets (F6–F8)</td><td>useEffect, after every mutation</td></tr>
+  <tr><td>Dashboard · <code>parseLocal</code>, <code>addExpense</code></td><td>Text → expense, with Gemini fallback (F5)</td><td>Log Expense input / button</td></tr>
+  <tr><td>Dashboard · <code>deleteExpense</code></td><td>Delete + refresh</td><td>✕ button on each expense</td></tr>
+  <tr><td>Dashboard · <code>saveBudget</code>, <code>addBudget</code>, <code>budgetAlerts</code>, <code>budgetCards</code></td><td>Budget editing and alert computation (F10)</td><td>Budget Limits panel, alerts banner</td></tr>
+  <tr><td>Dashboard · <code>doAsk</code></td><td>Ask Gemini (F11)</td><td>Ask AI panel</td></tr>
+  <tr><td><code>SettingsPage</code></td><td>Account card (avatar/initial, name, email), Sign out / Exit guest mode</td><td>Route /settings</td></tr>
+</table>
+
+<h4>components/, hooks/, utils/</h4>
+<table>
+  <tr><th style="width:26%">Symbol</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>ProtectedRoute</code></td><td>Loading screen → children if logged in (or guest) → else redirect /login</td><td>App.js routes / and /settings</td></tr>
+  <tr><td><code>GoogleButton</code> (+ <code>GoogleMark</code>, <code>Spinner</code>)</td><td>Custom-styled Google popup sign-in; handles popup blocked / cancel</td><td>AuthPage</td></tr>
+  <tr><td><code>TrendChart</code></td><td>10-day bar chart with navigation (F9)</td><td>Dashboard</td></tr>
+  <tr><td>TrendChart · <code>toKey, fromKey, addDays, clamp, monthEnd, shortDate, windowBounds, btn</code></td><td>Local-date arithmetic, window limits, button styles</td><td>TrendChart</td></tr>
+  <tr><td><code>InstallPrompt</code> (+ <code>isStandalone, isIOS, isIOSSafari, recentlyDismissed, ShareIcon</code>)</td><td>PWA install banner (F13)</td><td>App.js</td></tr>
+  <tr><td><code>useIsMobile(maxWidth=640)</code></td><td>Reactive <code>matchMedia</code> breakpoint</td><td>Dashboard (640 &amp; 900), TrendChart</td></tr>
+  <tr><td><code>parseExpense(text, key)</code></td><td>Gemini expense parser with keyword fallback</td><td>Dashboard.addExpense</td></tr>
+  <tr><td><code>localCategorize(desc)</code>, <code>CAT_KW</code></td><td>Keyword → category</td><td>parseExpense</td></tr>
+  <tr><td><code>askGemini(q, stats, budgets, key)</code></td><td>Spending Q&amp;A prompt to Gemini</td><td>Dashboard.doAsk</td></tr>
+  <tr><td><code>CAT_ICONS</code>, <code>CAT_COLORS</code></td><td>Category emoji and chart colours</td><td>Dashboard, parseLocal</td></tr>
+  <tr><td><code>fmt(n)</code></td><td>₹ with Indian digit grouping, rounded</td><td>Dashboard, TrendChart</td></tr>
+</table>
+
+<h4>public/ &amp; config</h4>
+<table>
+  <tr><th style="width:26%">File</th><th style="width:44%">What it does</th><th>Used by</th></tr>
+  <tr><td><code>public/service-worker.js</code></td><td>install (cache shell), activate (drop old caches), fetch (network-first pages, cache-first /static)</td><td>index.js (production)</td></tr>
+  <tr><td><code>public/manifest.json</code>, icons</td><td>PWA name, colours, icons (192/512/maskable)</td><td>Browser install</td></tr>
+  <tr><td><code>nginx.conf</code></td><td>SPA fallback to index.html; no-cache for html/json, 1-year cache for assets</td><td>Static production hosting</td></tr>
+  <tr><td><code>.env</code></td><td><code>REACT_APP_API_URL</code>, <code>REACT_APP_GOOGLE_CLIENT_ID</code>, <code>REACT_APP_GEMINI_API_KEY</code></td><td>Build time (CRA)</td></tr>
+</table>
+
+<!-- ═══════════════════════════════ 8. API ═══════════════════════════════ -->
+<h2 class="page-break">8. API reference</h2>
+<table>
+  <tr><th style="width:8%">Method</th><th style="width:24%">Path</th><th style="width:8%">Auth</th><th style="width:20%">Controller</th><th style="width:22%">Request → Response</th><th>Frontend caller</th></tr>
+  <tr><td>GET</td><td>/health</td><td>—</td><td>main.health</td><td>→ {status, timestamp}</td><td>—</td></tr>
+  <tr><td>POST</td><td>/api/auth/register</td><td>—</td><td>register</td><td>{name,email,password} → 201 {token,user}</td><td>AuthContext.register</td></tr>
+  <tr><td>POST</td><td>/api/auth/login</td><td>—</td><td>login</td><td>{email,password} → {token,user}</td><td>AuthContext.login</td></tr>
+  <tr><td>POST</td><td>/api/auth/google</td><td>—</td><td>google_auth</td><td>{credential} or {access_token} → {token,user}</td><td>AuthContext.googleTokenLogin</td></tr>
+  <tr><td>GET</td><td>/api/auth/me</td><td>JWT</td><td>get_me</td><td>→ {user}</td><td>AuthProvider (mount)</td></tr>
+  <tr><td>PATCH</td><td>/api/auth/api-key</td><td>JWT</td><td>update_api_key</td><td>{gemini_api_key} → {message}</td><td>AuthContext.updateApiKey (unused)</td></tr>
+  <tr><td>GET</td><td>/api/expenses</td><td>JWT</td><td>get_expenses</td><td>?month&amp;category&amp;limit&amp;offset → {expenses}</td><td>Dashboard.fetchAll</td></tr>
+  <tr><td>POST</td><td>/api/expenses</td><td>JWT</td><td>create_expense</td><td>{amount,description,category?,emoji?,date?} → 201 {expense}</td><td>Dashboard.addExpense</td></tr>
+  <tr><td>PUT</td><td>/api/expenses/{id}</td><td>JWT</td><td>update_expense</td><td>partial fields → {expense}</td><td>(not in UI)</td></tr>
+  <tr><td>DELETE</td><td>/api/expenses/{id}</td><td>JWT</td><td>delete_expense</td><td>→ {message}</td><td>Dashboard.deleteExpense</td></tr>
+  <tr><td>GET</td><td>/api/expenses/stats/summary</td><td>JWT</td><td>get_stats</td><td>?month → {total,count,byCategory,daily,activeDays,thisMonth,months}</td><td>Dashboard.fetchAll</td></tr>
+  <tr><td>GET</td><td>/api/expenses/stats/daily</td><td>JWT</td><td>get_daily</td><td>?from&amp;to → {daily:[{day,total}]}</td><td>TrendChart</td></tr>
+  <tr><td>GET</td><td>/api/budgets</td><td>JWT</td><td>get_budgets</td><td>→ {budgets}</td><td>Dashboard.fetchAll</td></tr>
+  <tr><td>POST</td><td>/api/budgets</td><td>JWT</td><td>upsert_budget</td><td>{category,amount} → {budget}</td><td>Dashboard.addBudget / saveBudget</td></tr>
+  <tr><td>DELETE</td><td>/api/budgets/{category}</td><td>JWT</td><td>delete_budget</td><td>→ {message}</td><td>(not in UI)</td></tr>
+</table>
+<p>Errors always have the shape <code>{"error": "message"}</code>. Common statuses: 400 validation, 401 auth, 404 not found, 409 email exists, 429 rate limited, 500 server error.</p>
+
+<!-- ═══════════════════════════════ 9. DATABASE ═══════════════════════════════ -->
+<h2>9. Database schema</h2>
+<p>Script: <code>backend-fastapi/database/schema.sql</code> (idempotent; same DDL as <code>app/config/migrate.py</code>). Run with <code>psql "$DATABASE_URL" -f backend-fastapi/database/schema.sql</code>.</p>
+<div class="figure">
+<svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" font-family="DejaVu Sans, Arial, sans-serif" font-size="10">
+  <defs><marker id="crow" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" orient="auto"><path d="M0,6 L11,6 M11,0 L0,6 L11,12" stroke="#5f7d3a" fill="none" stroke-width="1.3"/></marker></defs>
+  <style>.h{fill:#5f7d3a}.r{fill:#fff;stroke:#5f7d3a}.ht{fill:#fff;font-weight:700}.k{font-weight:700}.ty{fill:#7a857f}</style>
+  <!-- users -->
+  <rect class="h" x="20" y="20" width="230" height="28" rx="4"/><text class="ht" x="30" y="38">users</text>
+  <rect class="r" x="20" y="48" width="230" height="180"/>
+  <g transform="translate(30,0)">
+    <text x="0" y="62" class="k">🔑 id</text><text x="215" y="62" class="ty" text-anchor="end">UUID</text>
+    <text x="0" y="82">name</text><text x="215" y="82" class="ty" text-anchor="end">VARCHAR(255) NN</text>
+    <text x="0" y="102">email</text><text x="215" y="102" class="ty" text-anchor="end">VARCHAR(255) UQ NN</text>
+    <text x="0" y="122">password_hash</text><text x="215" y="122" class="ty" text-anchor="end">VARCHAR(255)</text>
+    <text x="0" y="142">google_id</text><text x="215" y="142" class="ty" text-anchor="end">VARCHAR(255) UQ</text>
+    <text x="0" y="162">avatar_url</text><text x="215" y="162" class="ty" text-anchor="end">TEXT</text>
+    <text x="0" y="182">gemini_api_key</text><text x="215" y="182" class="ty" text-anchor="end">TEXT</text>
+    <text x="0" y="202">created_at</text><text x="215" y="202" class="ty" text-anchor="end">TIMESTAMP</text>
+    <text x="0" y="222">updated_at</text><text x="215" y="222" class="ty" text-anchor="end">TIMESTAMP</text>
+  </g>
+  <!-- expenses -->
+  <rect class="h" x="300" y="20" width="220" height="28" rx="4"/><text class="ht" x="310" y="38">expenses</text>
+  <rect class="r" x="300" y="48" width="220" height="160"/>
+  <g transform="translate(310,0)">
+    <text x="0" y="62" class="k">🔑 id</text><text x="200" y="62" class="ty" text-anchor="end">UUID</text>
+    <text x="0" y="82" class="k">user_id →</text><text x="200" y="82" class="ty" text-anchor="end">UUID FK NN</text>
+    <text x="0" y="102">amount</text><text x="200" y="102" class="ty" text-anchor="end">DECIMAL(12,2) NN</text>
+    <text x="0" y="122">description</text><text x="200" y="122" class="ty" text-anchor="end">VARCHAR(500) NN</text>
+    <text x="0" y="142">category</text><text x="200" y="142" class="ty" text-anchor="end">VARCHAR(100) 'Other'</text>
+    <text x="0" y="162">emoji</text><text x="200" y="162" class="ty" text-anchor="end">VARCHAR(10) '📦'</text>
+    <text x="0" y="182">date</text><text x="200" y="182" class="ty" text-anchor="end">TIMESTAMP NOW()</text>
+    <text x="0" y="202">created_at</text><text x="200" y="202" class="ty" text-anchor="end">TIMESTAMP</text>
+  </g>
+  <!-- budgets -->
+  <rect class="h" x="560" y="20" width="185" height="28" rx="4"/><text class="ht" x="570" y="38">budgets</text>
+  <rect class="r" x="560" y="48" width="185" height="140"/>
+  <g transform="translate(570,0)">
+    <text x="0" y="62" class="k">🔑 id</text><text x="165" y="62" class="ty" text-anchor="end">UUID</text>
+    <text x="0" y="82" class="k">user_id →</text><text x="165" y="82" class="ty" text-anchor="end">UUID FK NN</text>
+    <text x="0" y="102">category</text><text x="165" y="102" class="ty" text-anchor="end">VARCHAR(100) NN</text>
+    <text x="0" y="122">amount</text><text x="165" y="122" class="ty" text-anchor="end">DECIMAL(12,2) NN</text>
+    <text x="0" y="142">created_at</text><text x="165" y="142" class="ty" text-anchor="end">TIMESTAMP</text>
+    <text x="0" y="162">updated_at</text><text x="165" y="162" class="ty" text-anchor="end">TIMESTAMP</text>
+    <text x="0" y="182" class="ty">UNIQUE (user_id, category)</text>
+  </g>
+  <!-- relations -->
+  <polyline points="250,58 275,58 275,78 300,78" fill="none" stroke="#5f7d3a" stroke-width="1.3" marker-end="url(#crow)"/>
+  <polyline points="275,78 275,235 540,235 540,78 560,78" fill="none" stroke="#5f7d3a" stroke-width="1.3" marker-end="url(#crow)"/>
+  <text x="408" y="250" text-anchor="middle" fill="#4a5550" font-size="9">users 1 ── N expenses · users 1 ── N budgets  (ON DELETE CASCADE)</text>
+</svg>
+<div class="caption">Figure 2 — Entity-relationship diagram. Indexes: idx_expenses_user_id, idx_expenses_date, idx_budgets_user_id.</div>
+</div>
+<table>
+  <tr><th style="width:22%">Query (controller)</th><th>SQL pattern</th></tr>
+  <tr><td>Month filter</td><td><code>TO_CHAR(date,'YYYY-MM') = $n</code></td></tr>
+  <tr><td>Stats totals</td><td><code>COUNT(*), COALESCE(SUM(amount),0), COUNT(DISTINCT date::date)</code></td></tr>
+  <tr><td>By category</td><td><code>GROUP BY category ORDER BY total DESC</code> (emoji = MIN(emoji))</td></tr>
+  <tr><td>Daily totals</td><td><code>TO_CHAR(date,'YYYY-MM-DD') as day … GROUP BY day</code></td></tr>
+  <tr><td>Budget upsert</td><td><code>ON CONFLICT (user_id, category) DO UPDATE SET amount=$3, updated_at=NOW()</code></td></tr>
+  <tr><td>Ownership</td><td>Every expense/budget query includes <code>user_id = request.state.user.id</code></td></tr>
+</table>
+
+<!-- ═══════════════════════════════ 10. CONFIG ═══════════════════════════════ -->
+<h2 class="page-break">10. Configuration &amp; running</h2>
+<h4>Backend environment — <code>backend-fastapi/.env</code></h4>
+<table>
+  <tr><th style="width:26%">Variable</th><th>Purpose</th></tr>
+  <tr><td><code>PORT</code> / <code>HOST</code></td><td>Uvicorn bind (default 5000 / 0.0.0.0)</td></tr>
+  <tr><td><code>NODE_ENV</code></td><td><code>production</code> turns on DB SSL (name kept for compatibility)</td></tr>
+  <tr><td><code>DATABASE_URL</code></td><td>postgresql://user:pass@host:5432/spendai_db</td></tr>
+  <tr><td><code>JWT_SECRET</code>, <code>JWT_EXPIRES_IN</code></td><td>JWT signing secret and lifetime (e.g. 7d)</td></tr>
+  <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>Must match the frontend's client ID (token audience check)</td></tr>
+  <tr><td><code>CLIENT_URL</code></td><td>Allowed CORS origin (frontend URL)</td></tr>
+</table>
+<h4>Frontend environment — <code>frontend/.env</code></h4>
+<table>
+  <tr><th style="width:26%">Variable</th><th>Purpose</th></tr>
+  <tr><td><code>REACT_APP_API_URL</code></td><td>Backend base URL without <code>/api</code> (e.g. http://localhost:5000)</td></tr>
+  <tr><td><code>REACT_APP_GOOGLE_CLIENT_ID</code></td><td>Google OAuth web client ID</td></tr>
+  <tr><td><code>REACT_APP_GEMINI_API_KEY</code></td><td>Enables Gemini parsing fallback and Ask AI</td></tr>
+</table>
+<h4>Run locally</h4>
+<div class="tree"># 1. Database
+createdb spendai_db
+psql "$DATABASE_URL" -f backend-fastapi/database/schema.sql     # or: python -m app.config.migrate
+
+# 2. Backend
+cd backend-fastapi
+python3 -m venv .venv &amp;&amp; .venv/bin/pip install -r requirements.txt
+cp .env.example .env            # fill in values
+.venv/bin/python -m app --reload   # http://localhost:5000
+
+# 3. Frontend
+cd frontend
+npm install
+npm start                       # http://localhost:3000
+
+# Or everything with Docker (db + FastAPI + React):
+cd backend-fastapi &amp;&amp; docker-compose up -d</div>
+
+<!-- ═══════════════════════════════ 11. NOTES ═══════════════════════════════ -->
+<h2>11. Observations &amp; notes</h2>
+<ul>
+  <li><b>Gemini key is a frontend build variable.</b> <code>REACT_APP_GEMINI_API_KEY</code> is bundled into the public JavaScript, so anyone can read it. For production, move Gemini calls behind a FastAPI endpoint (e.g. <code>POST /api/ai/parse</code>, <code>/api/ai/ask</code>) and keep the key server-side.</li>
+  <li><b>Per-user key is unused.</b> <code>users.gemini_api_key</code> and <code>PATCH /api/auth/api-key</code> still exist, but no page calls <code>updateApiKey</code> any more (Settings no longer has the key field).</li>
+  <li><b>Endpoints without UI:</b> <code>PUT /api/expenses/{id}</code> (edit expense) and <code>DELETE /api/budgets/{category}</code> (remove budget) are implemented in backend and API client but not exposed in the Dashboard.</li>
+  <li><b>Two categorisers.</b> <code>Dashboard.parseLocal</code> and <code>utils/gemini.localCategorize</code> have overlapping but different keyword lists; consolidating them into <code>utils/</code> would keep categories consistent.</li>
+  <li><b>Category spelling.</b> "Grocerries" is used as a category key in several places (CAT_ICONS, CAT_COLORS, seeds, parser); renaming requires a data migration for existing rows.</li>
+  <li><b>Root docker-compose.yml and <code>bin/*.sh</code></b> still start the Node backend. Use <code>backend-fastapi/docker-compose.yml</code> for the React + FastAPI stack.</li>
+  <li><b>Rate limiting is in-memory</b> and per process; with multiple workers/instances each keeps its own counters.</li>
+  <li><b>Timezone.</b> <code>date</code> is <code>TIMESTAMP</code> (no zone); month/day grouping happens in the DB server's timezone while the guest store and TrendChart use the browser's local time.</li>
+</ul>
+
+</body>
+</html>

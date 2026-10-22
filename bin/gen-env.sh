@@ -16,14 +16,14 @@ else
   fi
 fi
 
-if [ -f "$ROOT_DIR/backend/.env" ]; then
-  echo "backend/.env exists — skipping"
+if [ -f "$ROOT_DIR/backend-fastapi/.env" ]; then
+  echo "backend-fastapi/.env exists — skipping"
 else
-  if [ -f "$ROOT_DIR/backend/.env.example" ]; then
-    cp "$ROOT_DIR/backend/.env.example" "$ROOT_DIR/backend/.env"
-    echo "Created backend/.env from backend/.env.example"
+  if [ -f "$ROOT_DIR/backend-fastapi/.env.example" ]; then
+    cp "$ROOT_DIR/backend-fastapi/.env.example" "$ROOT_DIR/backend-fastapi/.env"
+    echo "Created backend-fastapi/.env from backend-fastapi/.env.example"
   else
-    echo "No backend/.env.example found — create backend/.env manually"
+    echo "No backend-fastapi/.env.example found — create backend-fastapi/.env manually"
   fi
 fi
 

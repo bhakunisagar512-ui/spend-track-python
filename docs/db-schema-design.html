@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>spend&amp;Track — Database Schema Design</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  :root { --ink:#1c2421; --ink2:#4a5550; --ink3:#7a857f; --line:#d6dcd8; --accent:#2f8f6b; --soft:#e6f3ed; --db:#5f7d3a; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI","DejaVu Sans",Arial,sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 22pt; margin: 0 0 4px; }
+  .sub { color: var(--ink2); font-size: 11pt; margin-bottom: 14px; }
+  h2 { font-size: 14pt; margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12px 0 4px; color: var(--accent); break-after: avoid; }
+  p { margin: 4px 0 8px; }
+  code { font-family: "DejaVu Sans Mono",Consolas,monospace; font-size: 8.6pt; background: #f2f4f3; padding: 0 3px; border-radius: 3px; }
+  td code { background: none; padding: 0; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 6px 0 12px; font-size: 8.8pt; }
+  th, td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+  th { background: var(--soft); }
+  tr { break-inside: avoid; }
+  table { break-inside: avoid; }
+  .meta td:first-child { width: 22%; font-weight: 700; background: #f7f8f7; }
+  .page-break { break-before: page; }
+  .figure { break-inside: avoid; margin: 8px 0 12px; }
+  .figure svg { width: 100%; height: auto; display: block; }
+  .caption { font-size: 8.5pt; color: var(--ink3); text-align: center; margin-top: 4px; }
+  .sql { font-family: "DejaVu Sans Mono",monospace; font-size: 8.4pt; background: #f7f8f7; border: 1px solid var(--line); border-left: 4px solid var(--accent); padding: 7px 10px; white-space: pre; break-inside: avoid; margin: 4px 0 10px; }
+  .yes { color: var(--ink3); }
+  .key { font-weight: 700; color: var(--db); }
+  ul { margin: 4px 0 8px 18px; padding: 0; } li { margin-bottom: 2px; }
+  .tbl-head { display: flex; justify-content: space-between; align-items: baseline; }
+</style>
+</head>
+<body>
+
+<h1>spend<span style="color:var(--accent)">&amp;</span>Track — Database Schema Design</h1>
+<div class="sub">PostgreSQL schema for the React + FastAPI expense tracker · 1 October 2026</div>
+
+<table class="meta">
+  <tr><td>Database</td><td>PostgreSQL 16 (compatible with 13+) · database name <code>spendai_db</code></td></tr>
+  <tr><td>Tables</td><td><code>users</code>, <code>expenses</code>, <code>budgets</code></td></tr>
+  <tr><td>DDL script</td><td><code>backend-fastapi/database/schema.sql</code> (same as <code>app/config/migrate.py</code>, idempotent)</td></tr>
+  <tr><td>Accessed by</td><td><code>backend-fastapi/app/config/db.py</code> → <code>query()</code> (psycopg 3 async pool, 1–10 connections)</td></tr>
+</table>
+
+<h2>1. Entity-relationship diagram</h2>
+<div class="figure">
+<svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" font-family="DejaVu Sans, Arial, sans-serif" font-size="10">
+  <defs><marker id="crow" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,6 L11,6 M11,0 L0,6 L11,12" stroke="#5f7d3a" fill="none" stroke-width="1.3"/></marker></defs>
+  <style>.h{fill:#5f7d3a}.r{fill:#fff;stroke:#5f7d3a}.ht{fill:#fff;font-weight:700;font-size:11px}.k{font-weight:700}.ty{fill:#7a857f}</style>
+  <!-- users -->
+  <rect class="h" x="20" y="20" width="230" height="28" rx="4"/><text class="ht" x="30" y="38">users</text>
+  <rect class="r" x="20" y="48" width="230" height="180"/>
+  <g transform="translate(30,0)">
+    <text x="0" y="62" class="k">PK id</text><text x="215" y="62" class="ty" text-anchor="end">UUID</text>
+    <text x="0" y="82">name</text><text x="215" y="82" class="ty" text-anchor="end">VARCHAR(255) NN</text>
+    <text x="0" y="102">email</text><text x="215" y="102" class="ty" text-anchor="end">VARCHAR(255) UQ NN</text>
+    <text x="0" y="122">password_hash</text><text x="215" y="122" class="ty" text-anchor="end">VARCHAR(255)</text>
+    <text x="0" y="142">google_id</text><text x="215" y="142" class="ty" text-anchor="end">VARCHAR(255) UQ</text>
+    <text x="0" y="162">avatar_url</text><text x="215" y="162" class="ty" text-anchor="end">TEXT</text>
+    <text x="0" y="182">gemini_api_key</text><text x="215" y="182" class="ty" text-anchor="end">TEXT</text>
+    <text x="0" y="202">created_at</text><text x="215" y="202" class="ty" text-anchor="end">TIMESTAMP</text>
+    <text x="0" y="222">updated_at</text><text x="215" y="222" class="ty" text-anchor="end">TIMESTAMP</text>
+  </g>
+  <!-- expenses -->
+  <rect class="h" x="300" y="20" width="220" height="28" rx="4"/><text class="ht" x="310" y="38">expenses</text>
+  <rect class="r" x="300" y="48" width="220" height="160"/>
+  <g transform="translate(310,0)">
+    <text x="0" y="62" class="k">PK id</text><text x="200" y="62" class="ty" text-anchor="end">UUID</text>
+    <text x="0" y="82" class="k">FK user_id</text><text x="200" y="82" class="ty" text-anchor="end">UUID NN</text>
+    <text x="0" y="102">amount</text><text x="200" y="102" class="ty" text-anchor="end">DECIMAL(12,2) NN</text>
+    <text x="0" y="122">description</text><text x="200" y="122" class="ty" text-anchor="end">VARCHAR(500) NN</text>
+    <text x="0" y="142">category</text><text x="200" y="142" class="ty" text-anchor="end">VARCHAR(100) 'Other'</text>
+    <text x="0" y="162">emoji</text><text x="200" y="162" class="ty" text-anchor="end">VARCHAR(10) '📦'</text>
+    <text x="0" y="182">date</text><text x="200" y="182" class="ty" text-anchor="end">TIMESTAMP NOW()</text>
+    <text x="0" y="202">created_at</text><text x="200" y="202" class="ty" text-anchor="end">TIMESTAMP</text>
+  </g>
+  <!-- budgets -->
+  <rect class="h" x="560" y="20" width="185" height="28" rx="4"/><text class="ht" x="570" y="38">budgets</text>
+  <rect class="r" x="560" y="48" width="185" height="140"/>
+  <g transform="translate(570,0)">
+    <text x="0" y="62" class="k">PK id</text><text x="165" y="62" class="ty" text-anchor="end">UUID</text>
+    <text x="0" y="82" class="k">FK user_id</text><text x="165" y="82" class="ty" text-anchor="end">UUID NN</text>
+    <text x="0" y="102">category</text><text x="165" y="102" class="ty" text-anchor="end">VARCHAR(100) NN</text>
+    <text x="0" y="122">amount</text><text x="165" y="122" class="ty" text-anchor="end">DECIMAL(12,2) NN</text>
+    <text x="0" y="142">created_at</text><text x="165" y="142" class="ty" text-anchor="end">TIMESTAMP</text>
+    <text x="0" y="162">updated_at</text><text x="165" y="162" class="ty" text-anchor="end">TIMESTAMP</text>
+    <text x="0" y="182" class="ty">UNIQUE (user_id, category)</text>
+  </g>
+  <!-- relations -->
+  <polyline points="250,58 275,58 275,78 300,78" fill="none" stroke="#5f7d3a" stroke-width="1.3" marker-end="url(#crow)"/>
+  <polyline points="275,78 275,240 540,240 540,78 560,78" fill="none" stroke="#5f7d3a" stroke-width="1.3" marker-end="url(#crow)"/>
+  <text x="280" y="234" fill="#4a5550" font-size="9">1 user → N expenses / N budgets</text>
+  <text x="380" y="268" text-anchor="middle" fill="#4a5550" font-size="9.5">PK primary key · FK foreign key (ON DELETE CASCADE) · UQ unique · NN not null · crow's foot = "many" side</text>
+</svg>
+<div class="caption">Figure 1 — users own expenses and budgets; deleting a user deletes all of their rows.</div>
+</div>
+
+<h2>2. Table: users</h2>
+<p>One row per account. An account can sign in with email/password, Google, or both once Google is linked by email.</p>
+<table>
+  <tr><th style="width:17%">Column</th><th style="width:15%">Type</th><th style="width:7%">Null</th><th style="width:16%">Default</th><th style="width:7%">Key</th><th>Description</th></tr>
+  <tr><td class="key">id</td><td>UUID</td><td>NO</td><td>gen_random_uuid()</td><td>PK</td><td>User ID (JWT claim <code>userId</code>)</td></tr>
+  <tr><td>name</td><td>VARCHAR(255)</td><td>NO</td><td>—</td><td></td><td>Display name (trimmed)</td></tr>
+  <tr><td>email</td><td>VARCHAR(255)</td><td>NO</td><td>—</td><td>UQ</td><td>Login email, stored lower-case</td></tr>
+  <tr><td>password_hash</td><td>VARCHAR(255)</td><td class="yes">YES</td><td>NULL</td><td></td><td>bcrypt (<code>$2a$</code>, cost 12); NULL means Google-only account</td></tr>
+  <tr><td>google_id</td><td>VARCHAR(255)</td><td class="yes">YES</td><td>NULL</td><td>UQ</td><td>Google <code>sub</code> claim</td></tr>
+  <tr><td>avatar_url</td><td>TEXT</td><td class="yes">YES</td><td>NULL</td><td></td><td>Google profile picture URL</td></tr>
+  <tr><td>gemini_api_key</td><td>TEXT</td><td class="yes">YES</td><td>NULL</td><td></td><td>Optional per-user Gemini key (not used by the current UI)</td></tr>
+  <tr><td>created_at</td><td>TIMESTAMP</td><td class="yes">YES</td><td>NOW()</td><td></td><td>Row creation time</td></tr>
+  <tr><td>updated_at</td><td>TIMESTAMP</td><td class="yes">YES</td><td>NOW()</td><td></td><td>Set to NOW() when the API key is updated</td></tr>
+</table>
+<h3>Rules enforced by the API (<code>auth_controller.py</code>)</h3>
+<ul>
+  <li><b>Register:</b> name, email and password are required, the password needs at least 6 characters, and the email must be unique (409 if taken).</li>
+  <li><b>Login:</b> an account without <code>password_hash</code> gets "This account uses Google sign-in".</li>
+  <li><b>Google:</b> the email must be verified by Google. The API matches by <code>google_id</code>, then links by email, otherwise inserts a new user.</li>
+  <li><code>password_hash</code> is never returned to the client.</li>
+</ul>
+<h3>Used by</h3>
+<table>
+  <tr><th style="width:35%">Endpoint</th><th>Operation</th></tr>
+  <tr><td>POST /api/auth/register</td><td>INSERT</td></tr>
+  <tr><td>POST /api/auth/login</td><td>SELECT by email</td></tr>
+  <tr><td>POST /api/auth/google</td><td>SELECT / UPDATE (link google_id, avatar) / INSERT</td></tr>
+  <tr><td>GET /api/auth/me + every protected request</td><td>SELECT by id (<code>middleware/auth.py</code>)</td></tr>
+  <tr><td>PATCH /api/auth/api-key</td><td>UPDATE gemini_api_key, updated_at</td></tr>
+</table>
+
+<h2>3. Table: expenses</h2>
+<p>Each money-spent entry logged by a user.</p>
+<table>
+  <tr><th style="width:17%">Column</th><th style="width:15%">Type</th><th style="width:7%">Null</th><th style="width:16%">Default</th><th style="width:7%">Key</th><th>Description</th></tr>
+  <tr><td class="key">id</td><td>UUID</td><td>NO</td><td>gen_random_uuid()</td><td>PK</td><td>Expense ID</td></tr>
+  <tr><td class="key">user_id</td><td>UUID</td><td>NO</td><td>—</td><td>FK</td><td>Owner → <code>users.id</code> (ON DELETE CASCADE)</td></tr>
+  <tr><td>amount</td><td>DECIMAL(12,2)</td><td>NO</td><td>—</td><td></td><td>Amount in ₹; the API requires &gt; 0</td></tr>
+  <tr><td>description</td><td>VARCHAR(500)</td><td>NO</td><td>—</td><td></td><td>e.g. "Uber to office" (trimmed)</td></tr>
+  <tr><td>category</td><td>VARCHAR(100)</td><td>NO</td><td>'Other'</td><td></td><td>Food, Transport, Shopping, Health, Entertainment, Recharge, Education, Grocerries, Other</td></tr>
+  <tr><td>emoji</td><td>VARCHAR(10)</td><td class="yes">YES</td><td>'📦'</td><td></td><td>Category icon</td></tr>
+  <tr><td>date</td><td>TIMESTAMP</td><td class="yes">YES</td><td>NOW()</td><td></td><td>When the money was spent</td></tr>
+  <tr><td>created_at</td><td>TIMESTAMP</td><td class="yes">YES</td><td>NOW()</td><td></td><td>Row creation time</td></tr>
+</table>
+<h3>Rules enforced by the API (<code>expense_controller.py</code>)</h3>
+<ul>
+  <li>Amount and description are required, and the amount must be a positive number.</li>
+  <li>Every query filters by <code>user_id</code> = the logged-in user, so users only ever see their own rows.</li>
+  <li>Updating or deleting another user's expense returns 404.</li>
+</ul>
+<h3>Used by</h3>
+<table>
+  <tr><th style="width:35%">Endpoint</th><th>Operation</th></tr>
+  <tr><td>GET /api/expenses</td><td>List, newest first. Filters: <code>month</code>, <code>category</code>; <code>limit</code> 100, <code>offset</code> 0</td></tr>
+  <tr><td>POST /api/expenses</td><td>INSERT</td></tr>
+  <tr><td>PUT /api/expenses/{id}</td><td>Partial UPDATE (COALESCE)</td></tr>
+  <tr><td>DELETE /api/expenses/{id}</td><td>DELETE</td></tr>
+  <tr><td>GET /api/expenses/stats/summary</td><td>Totals, by category, last 14 days, this month, list of months</td></tr>
+  <tr><td>GET /api/expenses/stats/daily</td><td>Per-day totals between <code>from</code> and <code>to</code></td></tr>
+</table>
+
+<h2>4. Table: budgets</h2>
+<p>A monthly spending limit per category, per user.</p>
+<table>
+  <tr><th style="width:17%">Column</th><th style="width:15%">Type</th><th style="width:7%">Null</th><th style="width:16%">Default</th><th style="width:7%">Key</th><th>Description</th></tr>
+  <tr><td class="key">id</td><td>UUID</td><td>NO</td><td>gen_random_uuid()</td><td>PK</td><td>Budget ID</td></tr>
+  <tr><td class="key">user_id</td><td>UUID</td><td>NO</td><td>—</td><td>FK, UQ*</td><td>Owner → <code>users.id</code> (ON DELETE CASCADE)</td></tr>
+  <tr><td>category</td><td>VARCHAR(100)</td><td>NO</td><td>—</td><td>UQ*</td><td>Category the limit applies to</td></tr>
+  <tr><td>amount</td><td>DECIMAL(12,2)</td><td>NO</td><td>—</td><td></td><td>Limit in ₹; the API requires &gt; 0</td></tr>
+  <tr><td>created_at</td><td>TIMESTAMP</td><td class="yes">YES</td><td>NOW()</td><td></td><td>Row creation time</td></tr>
+  <tr><td>updated_at</td><td>TIMESTAMP</td><td class="yes">YES</td><td>NOW()</td><td></td><td>Set to NOW() on every upsert</td></tr>
+</table>
+<p>* <code>UNIQUE (user_id, category)</code>: a user has at most one budget per category.</p>
+<h3>Rules and usage</h3>
+<ul>
+  <li>Category and amount are required, and the amount must be &gt; 0 (<code>budget_controller.py</code>).</li>
+  <li><b>POST /api/budgets</b> is an upsert: <code>INSERT … ON CONFLICT (user_id, category) DO UPDATE</code>.</li>
+  <li><b>GET /api/budgets</b> lists budgets ordered by category. <b>DELETE /api/budgets/{category}</b> removes one.</li>
+  <li>Alerts are computed in the frontend (<code>Dashboard.js</code>): spent ÷ budget ≥ 100% shows "exceeded", ≥ 80% shows "x% — ₹y left".</li>
+</ul>
+
+<h2>5. Constraints &amp; indexes</h2>
+<table>
+  <tr><th style="width:31%">Name</th><th style="width:12%">Type</th><th style="width:11%">Table</th><th style="width:20%">Columns</th><th>Why</th></tr>
+  <tr><td>users_pkey</td><td>PK</td><td>users</td><td>id</td><td></td></tr>
+  <tr><td>users_email_key</td><td>UNIQUE</td><td>users</td><td>email</td><td>One account per email</td></tr>
+  <tr><td>users_google_id_key</td><td>UNIQUE</td><td>users</td><td>google_id</td><td>One account per Google user</td></tr>
+  <tr><td>expenses_pkey</td><td>PK</td><td>expenses</td><td>id</td><td></td></tr>
+  <tr><td>expenses_user_id_fkey</td><td>FK CASCADE</td><td>expenses</td><td>user_id → users.id</td><td>Deleting a user deletes their expenses</td></tr>
+  <tr><td>budgets_pkey</td><td>PK</td><td>budgets</td><td>id</td><td></td></tr>
+  <tr><td>budgets_user_id_fkey</td><td>FK CASCADE</td><td>budgets</td><td>user_id → users.id</td><td>Deleting a user deletes their budgets</td></tr>
+  <tr><td>budgets_user_id_category_key</td><td>UNIQUE</td><td>budgets</td><td>(user_id, category)</td><td>Upsert target</td></tr>
+  <tr><td>idx_expenses_user_id</td><td>INDEX</td><td>expenses</td><td>user_id</td><td>Every expense query filters by user</td></tr>
+  <tr><td>idx_expenses_date</td><td>INDEX</td><td>expenses</td><td>date</td><td>Sorting and date-range stats</td></tr>
+  <tr><td>idx_budgets_user_id</td><td>INDEX</td><td>budgets</td><td>user_id</td><td>Budget list per user</td></tr>
+</table>
+
+<h2>6. Key queries</h2>
+<h3>Month filter</h3>
+<div class="sql">WHERE user_id = $1 AND TO_CHAR(date, 'YYYY-MM') = $2</div>
+<h3>Stats totals</h3>
+<div class="sql">SELECT COUNT(*) AS count, COALESCE(SUM(amount),0) AS total,
+       COUNT(DISTINCT date::date) AS active_days
+FROM expenses WHERE user_id = $1 [AND month filter]</div>
+<h3>By category</h3>
+<div class="sql">SELECT category, MIN(emoji) AS emoji, COALESCE(SUM(amount),0) AS total, COUNT(*) AS count
+FROM expenses WHERE user_id = $1 [AND month filter]
+GROUP BY category ORDER BY total DESC</div>
+<h3>Daily totals (trend chart)</h3>
+<div class="sql">SELECT TO_CHAR(date,'YYYY-MM-DD') AS day, SUM(amount) AS total
+FROM expenses
+WHERE user_id = $1 AND date &gt;= $2::date AND date &lt; $3::date + INTERVAL '1 day'
+GROUP BY day ORDER BY day</div>
+<h3>Budget upsert</h3>
+<div class="sql">INSERT INTO budgets (user_id, category, amount) VALUES ($1, $2, $3)
+ON CONFLICT (user_id, category) DO UPDATE SET amount = $3, updated_at = NOW()
+RETURNING *</div>
+
+<h2>7. Design notes</h2>
+<ul>
+  <li><b>UUID primary keys:</b> IDs can't be guessed, and Postgres generates them (<code>gen_random_uuid()</code>).</li>
+  <li><b>DECIMAL(12,2) for money:</b> values are exact, with no floating-point rounding.</li>
+  <li><b>Category is free text</b> (VARCHAR), not a lookup table. The category list lives in the frontend (<code>Dashboard.js</code>, <code>utils/gemini.js</code>). "Grocerries" is the spelling stored in the data.</li>
+  <li><b>Timestamps have no time zone:</b> month/day grouping uses the database server's timezone.</li>
+  <li><b>ON DELETE CASCADE:</b> removing a user removes all of their expenses and budgets.</li>
+  <li><b>Guest mode</b> stores nothing in this database; its data lives in the browser's sessionStorage.</li>
+  <li><b>API value format:</b> NUMERIC/COUNT values come back as strings and timestamps as ISO-8601 UTC strings (<code>config/db.py</code>), which the frontend expects.</li>
+</ul>
+
+<h2>8. Full DDL script</h2>
+<p>From <code>backend-fastapi/database/schema.sql</code>. Run with <code>psql "$DATABASE_URL" -f backend-fastapi/database/schema.sql</code>.</p>
+<div class="sql" style="break-inside:auto">CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS users (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name           VARCHAR(255) NOT NULL,
+  email          VARCHAR(255) UNIQUE NOT NULL,
+  password_hash  VARCHAR(255),
+  google_id      VARCHAR(255) UNIQUE,
+  avatar_url     TEXT,
+  gemini_api_key TEXT,
+  created_at     TIMESTAMP DEFAULT NOW(),
+  updated_at     TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS expenses (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount      DECIMAL(12,2) NOT NULL,
+  description VARCHAR(500) NOT NULL,
+  category    VARCHAR(100) NOT NULL DEFAULT 'Other',
+  emoji       VARCHAR(10) DEFAULT '📦',
+  date        TIMESTAMP DEFAULT NOW(),
+  created_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS budgets (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category   VARCHAR(100) NOT NULL,
+  amount     DECIMAL(12,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, category)
+);
+
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_date    ON expenses(date);
+CREATE INDEX IF NOT EXISTS idx_budgets_user_id  ON budgets(user_id);
+
+COMMIT;</div>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+===============================================================================
+                spend&Track (spendAI) — DATABASE SCHEMA DESIGN
+===============================================================================
+
+Database      : PostgreSQL 16 (works on 13+)
+Database name : spendai_db
+Tables        : users, expenses, budgets
+DDL script    : backend-fastapi/database/schema.sql  (same as app/config/migrate.py)
+Accessed by   : backend-fastapi/app/config/db.py  → query()  (psycopg 3 async pool)
+
+
+-------------------------------------------------------------------------------
+1. ENTITY-RELATIONSHIP DIAGRAM
+-------------------------------------------------------------------------------
+
+   +---------------------------+
+   |          users            |
+   +---------------------------+
+   | PK id             UUID    |
+   |    name           VARCHAR |
+   | UQ email          VARCHAR |
+   |    password_hash  VARCHAR |
+   | UQ google_id      VARCHAR |
+   |    avatar_url     TEXT    |
+   |    gemini_api_key TEXT    |
+   |    created_at     TS      |
+   |    updated_at     TS      |
+   +-------------+-------------+
+                 | 1
+        +--------+---------------------------+
+        |                                    |
+        | N                                  | N
+   +----+----------------------+   +---------+-----------------+
+   |        expenses           |   |         budgets           |
+   +---------------------------+   +---------------------------+
+   | PK id          UUID       |   | PK id          UUID       |
+   | FK user_id     UUID       |   | FK user_id     UUID   -+  |
+   |    amount      DECIMAL    |   |    category    VARCHAR -+ UQ
+   |    description VARCHAR    |   |    amount      DECIMAL    |
+   |    category    VARCHAR    |   |    created_at  TS         |
+   |    emoji       VARCHAR    |   |    updated_at  TS         |
+   |    date        TS         |   +---------------------------+
+   |    created_at  TS         |
+   +---------------------------+
+
+   users 1 ──< N expenses   (expenses.user_id → users.id, ON DELETE CASCADE)
+   users 1 ──< N budgets    (budgets.user_id  → users.id, ON DELETE CASCADE)
+   budgets: one row per (user_id, category)
+
+   Legend: PK = primary key, FK = foreign key, UQ = unique, TS = TIMESTAMP
+
+
+-------------------------------------------------------------------------------
+2. TABLE: users
+-------------------------------------------------------------------------------
+Purpose : One row per account (email/password, Google, or both once linked).
+
+ Column          Type           Null  Default            Key  Description
+ --------------  -------------  ----  -----------------  ---  ---------------------------------------
+ id              UUID           NO    gen_random_uuid()  PK   User ID (JWT claim "userId")
+ name            VARCHAR(255)   NO    -                       Display name (trimmed)
+ email           VARCHAR(255)   NO    -                  UQ   Login email, stored lower-case
+ password_hash   VARCHAR(255)   YES   NULL                    bcrypt ($2a$, cost 12); NULL = Google-only
+ google_id       VARCHAR(255)   YES   NULL               UQ   Google "sub" claim
+ avatar_url      TEXT           YES   NULL                    Google profile picture URL
+ gemini_api_key  TEXT           YES   NULL                    Optional per-user Gemini key (unused by UI)
+ created_at      TIMESTAMP      YES   NOW()                   Row creation time
+ updated_at      TIMESTAMP      YES   NOW()                   Set to NOW() when API key is updated
+
+Rules enforced by the API (auth_controller.py):
+ - register: name, email, password required; password >= 6 chars; email must be unique (409)
+ - login: account without password_hash → "This account uses Google sign-in"
+ - google: email must be Google-verified; match by google_id, else link by email, else insert
+ - password_hash is never returned to the client
+
+Used by:
+ - POST /api/auth/register  → INSERT
+ - POST /api/auth/login     → SELECT by email
+ - POST /api/auth/google    → SELECT / UPDATE (link) / INSERT
+ - GET  /api/auth/me        → SELECT by id (middleware/auth.py, every protected request)
+ - PATCH /api/auth/api-key  → UPDATE gemini_api_key
+
+
+-------------------------------------------------------------------------------
+3. TABLE: expenses
+-------------------------------------------------------------------------------
+Purpose : Each money-spent entry logged by a user.
+
+ Column       Type           Null  Default            Key  Description
+ -----------  -------------  ----  -----------------  ---  ---------------------------------------
+ id           UUID           NO    gen_random_uuid()  PK   Expense ID
+ user_id      UUID           NO    -                  FK   Owner → users.id (ON DELETE CASCADE)
+ amount       DECIMAL(12,2)  NO    -                       Amount in ₹; API requires > 0
+ description  VARCHAR(500)   NO    -                       e.g. "Uber to office" (trimmed)
+ category     VARCHAR(100)   NO    'Other'                 Food, Transport, Shopping, Health,
+                                                           Entertainment, Recharge, Education,
+                                                           Grocerries, Other
+ emoji        VARCHAR(10)    YES   '📦'                    Category icon
+ date         TIMESTAMP      YES   NOW()                   When the money was spent
+ created_at   TIMESTAMP      YES   NOW()                   Row creation time
+
+Rules enforced by the API (expense_controller.py):
+ - amount and description required; amount must be a positive number
+ - every query is filtered by user_id = logged-in user (users only see their own rows)
+ - update/delete of another user's expense returns 404
+
+Used by:
+ - GET    /api/expenses               → list (filters: month, category; limit 100, offset 0)
+ - POST   /api/expenses               → INSERT
+ - PUT    /api/expenses/{id}          → partial UPDATE (COALESCE)
+ - DELETE /api/expenses/{id}          → DELETE
+ - GET    /api/expenses/stats/summary → totals, by category, last 14 days, this month, months
+ - GET    /api/expenses/stats/daily   → per-day totals between from and to
+
+
+-------------------------------------------------------------------------------
+4. TABLE: budgets
+-------------------------------------------------------------------------------
+Purpose : Monthly spending limit per category, per user.
+
+ Column      Type           Null  Default            Key  Description
+ ----------  -------------  ----  -----------------  ---  ---------------------------------------
+ id          UUID           NO    gen_random_uuid()  PK   Budget ID
+ user_id     UUID           NO    -                  FK   Owner → users.id (ON DELETE CASCADE)
+ category    VARCHAR(100)   NO    -                       Category the limit applies to
+ amount      DECIMAL(12,2)  NO    -                       Limit in ₹; API requires > 0
+ created_at  TIMESTAMP      YES   NOW()                   Row creation time
+ updated_at  TIMESTAMP      YES   NOW()                   Set to NOW() on every upsert
+
+ Constraint: UNIQUE (user_id, category) — a user has at most one budget per category.
+
+Rules enforced by the API (budget_controller.py):
+ - category and amount required; amount must be > 0
+ - POST is an upsert: INSERT ... ON CONFLICT (user_id, category) DO UPDATE
+
+Used by:
+ - GET    /api/budgets             → list ordered by category
+ - POST   /api/budgets             → upsert
+ - DELETE /api/budgets/{category}  → DELETE
+
+Budget alerts (computed in the frontend, Dashboard.js):
+ - spent / budget >= 100%  → "budget exceeded"
+ - spent / budget >= 80%   → "x% — ₹y left"
+
+
+-------------------------------------------------------------------------------
+5. CONSTRAINTS & INDEXES
+-------------------------------------------------------------------------------
+
+ Name / type                          Table     Columns              Why
+ -----------------------------------  --------  -------------------  ------------------------------------
+ users_pkey (PK)                      users     id
+ users_email_key (UNIQUE)             users     email                one account per email
+ users_google_id_key (UNIQUE)         users     google_id            one account per Google user
+ expenses_pkey (PK)                   expenses  id
+ expenses_user_id_fkey (FK, CASCADE)  expenses  user_id → users.id   deleting a user deletes expenses
+ budgets_pkey (PK)                    budgets   id
+ budgets_user_id_fkey (FK, CASCADE)   budgets   user_id → users.id   deleting a user deletes budgets
+ budgets_user_id_category_key (UQ)    budgets   (user_id, category)  upsert target
+ idx_expenses_user_id (INDEX)         expenses  user_id              every expense query filters by user
+ idx_expenses_date (INDEX)            expenses  date                 sorting and date-range stats
+ idx_budgets_user_id (INDEX)          budgets   user_id              budget list per user
+
+
+-------------------------------------------------------------------------------
+6. KEY QUERIES
+-------------------------------------------------------------------------------
+
+ Month filter:
+   WHERE user_id = $1 AND TO_CHAR(date, 'YYYY-MM') = $2
+
+ Stats totals:
+   SELECT COUNT(*) AS count, COALESCE(SUM(amount),0) AS total,
+          COUNT(DISTINCT date::date) AS active_days
+   FROM expenses WHERE user_id = $1 [AND month filter]
+
+ By category:
+   SELECT category, MIN(emoji) AS emoji, COALESCE(SUM(amount),0) AS total, COUNT(*) AS count
+   FROM expenses WHERE user_id = $1 [AND month filter]
+   GROUP BY category ORDER BY total DESC
+
+ Daily totals (trend chart):
+   SELECT TO_CHAR(date,'YYYY-MM-DD') AS day, SUM(amount) AS total
+   FROM expenses
+   WHERE user_id = $1 AND date >= $2::date AND date < $3::date + INTERVAL '1 day'
+   GROUP BY day ORDER BY day
+
+ Budget upsert:
+   INSERT INTO budgets (user_id, category, amount) VALUES ($1, $2, $3)
+   ON CONFLICT (user_id, category) DO UPDATE SET amount = $3, updated_at = NOW()
+   RETURNING *
+
+
+-------------------------------------------------------------------------------
+7. DESIGN NOTES
+-------------------------------------------------------------------------------
+
+ - UUID primary keys: IDs can't be guessed, and they're generated by Postgres (gen_random_uuid).
+ - DECIMAL(12,2) for money: exact values, no floating-point rounding.
+ - category is free text (VARCHAR), not a lookup table; the list of categories lives in the
+   frontend (Dashboard.js, utils/gemini.js). "Grocerries" is the spelling stored in the data.
+ - date / created_at are TIMESTAMP WITHOUT TIME ZONE; month/day grouping uses the DB server's
+   timezone.
+ - ON DELETE CASCADE: removing a user removes all of their expenses and budgets.
+ - Guest mode stores no data in this database (browser sessionStorage only).
+ - The API returns NUMERIC/COUNT values as strings and timestamps as ISO-8601 UTC strings
+   (config/db.py), which the frontend expects.
+
+===============================================================================
